@@ -4,14 +4,14 @@ import { getCollection, render } from "astro:content";
 import "../../styles/global.css";
 
 export async function getStaticPaths() {
-	const posts = await getCollection("posts");
-
-	return posts
+	const posts = (await getCollection("posts"))
 		.filter((post) => !post.data.draft)
-		.map((post) => ({
-			params: { slug: post.id },
-			props: { post },
-		}));
+		.sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
+
+	return posts.map((post) => ({
+		params: { slug: post.id },
+		props: { post },
+	}));
 }
 
 const { post } = Astro.props as Awaited<ReturnType<typeof getStaticPaths>>[number]["props"];
@@ -55,9 +55,11 @@ const dateFormatter = new Intl.DateTimeFormat("en-GB", {
 
 		<style>
 			.post-page {
-				align-items: start;
-				overflow: auto;
-				padding-block: clamp(18px, 4vh, 36px);
+				align-items: stretch;
+				justify-items: stretch;
+				height: 100%;
+				padding: clamp(16px, 3.5vh, 32px);
+				box-sizing: border-box;
 			}
 
 			.post-back {
@@ -67,14 +69,18 @@ const dateFormatter = new Intl.DateTimeFormat("en-GB", {
 			}
 
 			.post-sheet {
-				width: min(100%, 920px);
+				width: 100%;
+				height: 100%;
+				display: flex;
+				flex-direction: column;
 				border: 1px solid var(--line);
 				background: var(--surface);
 				box-shadow: 0 1px 0 rgba(0, 0, 0, .04);
+				overflow: hidden;
 			}
 
 			.post-sheet-header {
-				padding: clamp(28px, 5vw, 56px);
+				padding: clamp(24px, 4vw, 52px);
 				border-bottom: 1px solid var(--line);
 			}
 
@@ -103,7 +109,9 @@ const dateFormatter = new Intl.DateTimeFormat("en-GB", {
 			}
 
 			.post-sheet-body {
-				padding: clamp(28px, 5vw, 56px);
+				flex: 1 1 auto;
+				overflow: auto;
+				padding: clamp(24px, 4vw, 52px);
 			}
 
 			.post-sheet-body :global(p) {
@@ -142,10 +150,16 @@ const dateFormatter = new Intl.DateTimeFormat("en-GB", {
 					padding-inline: 16px;
 				}
 
+				.post-page {
+					padding: 12px;
+				}
+
 				.post-sheet-header,
 				.post-sheet-body {
-					padding: 24px 18px;
+					padding: 20px 16px;
 				}
+
+
 			}
 		</style>
 	</body>

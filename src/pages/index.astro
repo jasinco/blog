@@ -48,8 +48,8 @@ const posts = (await getCollection("posts"))
 					</header>
 
 					<div class="latest-posts" aria-label="Latest posts">
-						{posts.map((post) => (
-							<article class="post">
+						{posts.map((post, index) => (
+							<article class="post" data-post-index={index + 1}>
 								<p class="post-date">{post.date}</p>
 								<div class="post-copy">
 									<h2>{post.title}</h2>
@@ -89,6 +89,7 @@ const posts = (await getCollection("posts"))
 
 				const readingBox = document.querySelector<HTMLElement>(".reading-box");
 				const boxContent = document.querySelector<HTMLElement>(".box-content");
+				const latestPosts = document.querySelector<HTMLElement>(".latest-posts");
 				const terminalText = document.querySelector<HTMLElement>(".terminal-text");
 				const terminalCursor = document.querySelector<HTMLElement>(".terminal-cursor");
 				const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -191,6 +192,8 @@ const posts = (await getCollection("posts"))
 					const bChannel = Math.round(a.b + (b.b - a.b) * clamp);
 					return `rgb(${r} ${g} ${bChannel})`;
 				};
+
+
 
 				posts.forEach((post) => {
 					if (post.dataset.hoverBound === "true") return;
