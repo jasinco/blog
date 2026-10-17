@@ -41,6 +41,9 @@ const dateFormatter = new Intl.DateTimeFormat("en-GB", {
 
 		<main class="stage post-page" transition:animate="fade">
 			<article class="post-sheet">
+				<div class="post-mini-bar" aria-hidden="true">
+					<span class="post-mini-title">{post.data.title}</span>
+				</div>
 				<header class="post-sheet-header">
 					<p class="post-sheet-meta">{dateFormatter.format(post.data.date)}</p>
 					<h1>{post.data.title}</h1>
@@ -57,7 +60,7 @@ const dateFormatter = new Intl.DateTimeFormat("en-GB", {
 			.post-page {
 				align-items: stretch;
 				justify-items: stretch;
-				height: 100%;
+				height: calc(100dvh - 56px);
 				padding: clamp(16px, 3.5vh, 32px);
 				box-sizing: border-box;
 			}
@@ -68,15 +71,53 @@ const dateFormatter = new Intl.DateTimeFormat("en-GB", {
 				color: var(--soft-ink);
 			}
 
+			.post-mini-bar {
+				position: sticky;
+				top: 0;
+				z-index: 10;
+				display: flex;
+				align-items: center;
+				width: 100%;
+				height: 48px;
+				margin-bottom: -48px;
+				overflow: hidden;
+				opacity: 0;
+				transform: translateY(-100%);
+				pointer-events: none;
+				background: color-mix(in srgb, var(--surface) 88%, transparent);
+				-webkit-backdrop-filter: blur(8px);
+				backdrop-filter: blur(8px);
+				border-bottom: 1px solid transparent;
+				transition: transform .25s ease, opacity .25s ease, border-bottom-color .25s ease;
+			}
+
+			.post-mini-bar.is-visible {
+				opacity: 1;
+				transform: translateY(0);
+				pointer-events: auto;
+				border-bottom-color: var(--line);
+			}
+
+			.post-mini-title {
+				padding: 0 clamp(16px, 4vw, 32px);
+				font-family: var(--serif);
+				font-size: .95rem;
+				font-weight: 500;
+				letter-spacing: -.02em;
+				color: var(--ink);
+				white-space: nowrap;
+				overflow: hidden;
+				text-overflow: ellipsis;
+			}
+
 			.post-sheet {
 				width: 100%;
 				height: 100%;
-				display: flex;
-				flex-direction: column;
 				border: 1px solid var(--line);
 				background: var(--surface);
 				box-shadow: 0 1px 0 rgba(0, 0, 0, .04);
-				overflow: hidden;
+				overflow-y: auto;
+				overflow-x: hidden;
 			}
 
 			.post-sheet-header {
@@ -109,8 +150,6 @@ const dateFormatter = new Intl.DateTimeFormat("en-GB", {
 			}
 
 			.post-sheet-body {
-				flex: 1 1 auto;
-				overflow: auto;
 				padding: clamp(24px, 4vw, 52px);
 			}
 
@@ -151,6 +190,7 @@ const dateFormatter = new Intl.DateTimeFormat("en-GB", {
 				}
 
 				.post-page {
+					height: calc(100dvh - 52px);
 					padding: 12px;
 				}
 
@@ -158,9 +198,44 @@ const dateFormatter = new Intl.DateTimeFormat("en-GB", {
 				.post-sheet-body {
 					padding: 20px 16px;
 				}
+			}
 
-
+			@media (prefers-reduced-motion: reduce) {
+				.post-mini-bar {
+					transition: none;
+				}
 			}
 		</style>
+
+		<script>
+			const initMiniBar = () => {
+				const win = window as Window & {
+					__miniBarObserver?: IntersectionObserver;
+				};
+
+				win.__miniBarObserver?.disconnect();
+
+				const sheet = document.querySelector<HTMLElement>(".post-sheet");
+				const header = document.querySelector<HTMLElement>(".post-sheet-header");
+				const miniBar = document.querySelector<HTMLElement>(".post-mini-bar");
+				if (!sheet || !header || !miniBar) return;
+
+				win.__miniBarObserver = new IntersectionObserver((entries) => {
+					const entry = entries[0];
+					if (!entry) return;
+					const isVisible = !entry.isIntersecting;
+					miniBar.classList.toggle("is-visible", isVisible);
+					miniBar.setAttribute("aria-hidden", isVisible ? "false" : "true");
+				}, {
+					root: sheet,
+					threshold: 0,
+				});
+
+				win.__miniBarObserver.observe(header);
+			};
+
+			initMiniBar();
+			document.addEventListener("astro:page-load", initMiniBar);
+		</script>
 	</body>
 </html>
