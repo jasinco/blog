@@ -3,6 +3,9 @@ title: A small atlas of everyday rituals
 date: 2026-03-09
 excerpt: "The cup rinsed before coffee. The long walk after rain. Ordinary gestures that keep a day from becoming a blur."
 draft: false
+tags:
+  - rituals
+  - habits
 ---
 
 A life becomes legible through repetition. Not the grand routines that look good in a calendar, but the small gestures that quietly return each day.

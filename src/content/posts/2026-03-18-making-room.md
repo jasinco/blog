@@ -3,6 +3,10 @@ title: The quiet work of making room
 date: 2026-03-18
 excerpt: "Most useful systems begin with subtraction: one fewer meeting, one clear surface, a little more air around the work that matters."
 draft: false
+tags:
+  - systems
+  - habits
+  - minimalism
 ---
 
 Most useful systems begin with subtraction. This note is about the relief that appears when a busy page, a crowded desk, or a noisy routine loses one unnecessary thing.

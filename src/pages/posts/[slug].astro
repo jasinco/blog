@@ -1,5 +1,5 @@
 ---
-import { ClientRouter } from "astro:transitions";
+import { ClientRouter,fade } from "astro:transitions";
 import { getCollection, render } from "astro:content";
 import "../../styles/global.css";
 
@@ -39,13 +39,24 @@ const dateFormatter = new Intl.DateTimeFormat("en-GB", {
 			<a class="post-back" href="/">Back to notes</a>
 		</header>
 
-		<main class="stage post-page" transition:animate="fade">
+		<main class="stage post-page" transition:animate={fade({duration: '0.5s'})}>
 			<article class="post-sheet">
 				<div class="post-mini-bar" aria-hidden="true">
 					<span class="post-mini-title">{post.data.title}</span>
 				</div>
 				<header class="post-sheet-header">
-					<p class="post-sheet-meta">{dateFormatter.format(post.data.date)}</p>
+					<div class="post-sheet-meta-bar">
+						<p class="post-sheet-meta">{dateFormatter.format(post.data.date)}</p>
+						{post.data.tags && post.data.tags.length > 0 && (
+							<div class="post-sheet-tags" aria-label="Tags">
+								{post.data.tags.map((tag) => (
+									<a href={`/?tag=${encodeURIComponent(tag)}`} class="post-tag-link" aria-label={`View notes tagged #${tag}`}>
+										#{tag}
+									</a>
+								))}
+							</div>
+						)}
+					</div>
 					<h1>{post.data.title}</h1>
 					<p class="post-sheet-excerpt">{post.data.excerpt}</p>
 				</header>
@@ -125,10 +136,46 @@ const dateFormatter = new Intl.DateTimeFormat("en-GB", {
 				border-bottom: 1px solid var(--line);
 			}
 
-			.post-sheet-meta {
+			.post-sheet-meta-bar {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				flex-wrap: wrap;
+				gap: 12px;
 				margin-bottom: 12px;
+			}
+
+			.post-sheet-meta {
+				margin-bottom: 0;
 				color: var(--soft-ink);
 				font-size: .78rem;
+			}
+
+			.post-sheet-tags {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 6px;
+			}
+
+			.post-tag-link {
+				display: inline-flex;
+				align-items: center;
+				padding: 1px 7px;
+				background: transparent;
+				border: 1px solid var(--line);
+				border-radius: 2px;
+				color: var(--soft-ink);
+				font-family: "SFMono-Regular", "Cascadia Mono", Menlo, monospace;
+				font-size: .72rem;
+				line-height: 1.3;
+				text-decoration: none;
+				transition: all .15s ease;
+			}
+
+			.post-tag-link:hover {
+				color: var(--green-ink);
+				border-color: var(--green-ink);
+				background: var(--green-wash);
 			}
 
 			h1 {

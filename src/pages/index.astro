@@ -17,7 +17,18 @@ const posts = (await getCollection("posts"))
 		title: post.data.title,
 		date: dateFormatter.format(post.data.date),
 		excerpt: post.data.excerpt,
+		tags: post.data.tags ?? [],
 	}));
+
+const tagCounts = new Map<string, number>();
+posts.forEach((post) => {
+	post.tags.forEach((tag) => {
+		tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1);
+	});
+});
+const allTags = [...tagCounts.entries()]
+	.sort(([a], [b]) => a.localeCompare(b))
+	.map(([tag, count]) => ({ tag, count }));
 ---
 
 <html lang="en">
@@ -47,17 +58,40 @@ const posts = (await getCollection("posts"))
 						<p>A small collection of things I have not quite figured out.</p>
 					</header>
 
+					<div class="tag-filter-bar" role="toolbar" aria-label="Filter posts by tag">
+						<button type="button" class="tag-filter-btn is-active" data-tag="all" aria-pressed="true">
+							all <span class="tag-count">{posts.length}</span>
+						</button>
+						{allTags.map(({ tag, count }) => (
+							<button type="button" class="tag-filter-btn" data-tag={tag} aria-pressed="false">
+								#{tag} <span class="tag-count">{count}</span>
+							</button>
+						))}
+					</div>
+
 					<div class="latest-posts" aria-label="Latest posts">
 						{posts.map((post, index) => (
-							<article class="post" data-post-index={index + 1}>
+							<article class="post" data-post-index={index + 1} data-tags={JSON.stringify(post.tags)}>
 								<p class="post-date">{post.date}</p>
 								<div class="post-copy">
-									<h2>{post.title}</h2>
+									<h2 tabindex="0" role="link">{post.title}</h2>
 									<p>{post.excerpt}</p>
+									{post.tags.length > 0 && (
+										<div class="post-tags" aria-label="Tags">
+											{post.tags.map((tag) => (
+												<button type="button" class="post-tag-pill" data-tag-filter={tag} title={`Filter by #${tag}`}>
+													#{tag}
+												</button>
+											))}
+										</div>
+									)}
 								</div>
 								<a href={`/posts/${post.id}`} aria-label={`Read ${post.title}`}>Read <span aria-hidden="true">↗</span></a>
 							</article>
 						))}
+						<div class="no-posts-found" hidden>
+							<p>No notes filed under this tag yet.</p>
+						</div>
 					</div>
 				</div>
 			</section>
@@ -218,6 +252,120 @@ const posts = (await getCollection("posts"))
 
 					post.addEventListener("pointerenter", () => setHover(1, 180));
 					post.addEventListener("pointerleave", () => setHover(0, 720));
+				});
+
+				const filterButtons = [...document.querySelectorAll<HTMLButtonElement>(".tag-filter-btn")];
+				const tagPills = [...document.querySelectorAll<HTMLButtonElement>(".post-tag-pill")];
+				const noPostsEl = document.querySelector<HTMLElement>(".no-posts-found");
+
+				const setActiveTag = (selectedTag: string, updateUrl = true) => {
+					const currentTag = selectedTag.trim().toLowerCase();
+
+					filterButtons.forEach((btn) => {
+						const btnTag = (btn.dataset.tag ?? "").toLowerCase();
+						const isActive = btnTag === currentTag;
+						btn.classList.toggle("is-active", isActive);
+						btn.setAttribute("aria-pressed", isActive ? "true" : "false");
+					});
+
+					tagPills.forEach((pill) => {
+						const pillTag = (pill.dataset.tagFilter ?? "").toLowerCase();
+						pill.classList.toggle("is-active", currentTag !== "all" && pillTag === currentTag);
+					});
+
+					let visibleCount = 0;
+					posts.forEach((post) => {
+						const rawTags = post.dataset.tags ?? "[]";
+						let tags: string[] = [];
+						try {
+							tags = (JSON.parse(rawTags) as string[]).map((t) => t.toLowerCase());
+						} catch {
+							tags = [];
+						}
+
+						const matches = currentTag === "all" || tags.includes(currentTag);
+						if (matches) {
+							post.style.display = "";
+							visibleCount++;
+						} else {
+							post.style.display = "none";
+						}
+					});
+
+					if (noPostsEl) {
+						noPostsEl.hidden = visibleCount > 0;
+					}
+
+					if (updateUrl) {
+						const url = new URL(window.location.href);
+						if (currentTag === "all") {
+							url.searchParams.delete("tag");
+						} else {
+							url.searchParams.set("tag", currentTag);
+						}
+						window.history.replaceState(null, "", url.toString());
+					}
+				};
+
+				const urlTag = new URLSearchParams(window.location.search).get("tag");
+				const validTags = filterButtons.map((b) => (b.dataset.tag ?? "").toLowerCase());
+				if (urlTag && validTags.includes(urlTag.toLowerCase())) {
+					setActiveTag(urlTag, false);
+				} else {
+					setActiveTag("all", false);
+				}
+
+				filterButtons.forEach((btn) => {
+					if (btn.dataset.filterBound === "true") return;
+					btn.dataset.filterBound = "true";
+					btn.addEventListener("click", () => {
+						const tag = btn.dataset.tag ?? "all";
+						const isCurrentlyActive = btn.classList.contains("is-active") && tag !== "all";
+						setActiveTag(isCurrentlyActive ? "all" : tag);
+					});
+				});
+
+				tagPills.forEach((pill) => {
+					if (pill.dataset.filterBound === "true") return;
+					pill.dataset.filterBound = "true";
+					pill.addEventListener("click", (e) => {
+						e.preventDefault();
+						e.stopPropagation();
+						const tag = pill.dataset.tagFilter ?? "";
+						const activeBtn = filterButtons.find((b) => b.classList.contains("is-active"));
+						const currentActive = activeBtn?.dataset.tag ?? "all";
+						if (currentActive === tag) {
+							setActiveTag("all");
+						} else {
+							setActiveTag(tag);
+						}
+					});
+				});
+
+				const postHeadings = [...document.querySelectorAll<HTMLElement>(".post-copy h2")];
+				postHeadings.forEach((h2) => {
+					if (h2.dataset.clickBound === "true") return;
+					h2.dataset.clickBound = "true";
+
+					const redirectToPost = (e: MouseEvent | KeyboardEvent) => {
+						const post = h2.closest<HTMLElement>(".post");
+						const readLink = post?.querySelector<HTMLAnchorElement>("a[href^='/posts/']");
+						if (!readLink) return;
+
+						if ("metaKey" in e && (e.metaKey || e.ctrlKey)) {
+							window.open(readLink.href, "_blank");
+						} else {
+							readLink.click();
+						}
+					};
+
+					h2.addEventListener("click", redirectToPost);
+					h2.addEventListener("keydown", (e) => {
+						if (e.key === "Enter" || e.key === " ") {
+							e.preventDefault();
+							redirectToPost(e);
+						}
+					});
 				});
 			};
 
