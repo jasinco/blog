@@ -1,0 +1,152 @@
+---
+import { ClientRouter } from "astro:transitions";
+import { getCollection, render } from "astro:content";
+import "../../styles/global.css";
+
+export async function getStaticPaths() {
+	const posts = await getCollection("posts");
+
+	return posts
+		.filter((post) => !post.data.draft)
+		.map((post) => ({
+			params: { slug: post.id },
+			props: { post },
+		}));
+}
+
+const { post } = Astro.props as Awaited<ReturnType<typeof getStaticPaths>>[number]["props"];
+const { Content } = await render(post);
+
+const dateFormatter = new Intl.DateTimeFormat("en-GB", {
+	day: "2-digit",
+	month: "long",
+	year: "numeric",
+});
+---
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width" />
+		<meta name="generator" content={Astro.generator} />
+		<meta name="description" content={post.data.excerpt} />
+		<ClientRouter />
+		<title>{post.data.title} — 一人の言葉</title>
+	</head>
+	<body>
+		<header class="site-bar" transition:persist>
+			<a href="/" class="brand" aria-label="一人の言葉 home">一人の言葉</a>
+			<a class="post-back" href="/">Back to notes</a>
+		</header>
+
+		<main class="stage post-page" transition:animate="fade">
+			<article class="post-sheet">
+				<header class="post-sheet-header">
+					<p class="post-sheet-meta">{dateFormatter.format(post.data.date)}</p>
+					<h1>{post.data.title}</h1>
+					<p class="post-sheet-excerpt">{post.data.excerpt}</p>
+				</header>
+
+				<div class="post-sheet-body">
+					<Content />
+				</div>
+			</article>
+		</main>
+
+		<style>
+			.post-page {
+				align-items: start;
+				overflow: auto;
+				padding-block: clamp(18px, 4vh, 36px);
+			}
+
+			.post-back {
+				font-size: .78rem;
+				text-decoration: none;
+				color: var(--soft-ink);
+			}
+
+			.post-sheet {
+				width: min(100%, 920px);
+				border: 1px solid var(--line);
+				background: var(--surface);
+				box-shadow: 0 1px 0 rgba(0, 0, 0, .04);
+			}
+
+			.post-sheet-header {
+				padding: clamp(28px, 5vw, 56px);
+				border-bottom: 1px solid var(--line);
+			}
+
+			.post-sheet-meta {
+				margin-bottom: 12px;
+				color: var(--soft-ink);
+				font-size: .78rem;
+			}
+
+			h1 {
+				margin-bottom: 18px;
+				font-family: var(--serif);
+				font-size: clamp(2.2rem, 6vw, 4.9rem);
+				font-weight: 500;
+				letter-spacing: -.06em;
+				line-height: .95;
+				white-space: normal;
+			}
+
+			.post-sheet-excerpt {
+				max-width: 52ch;
+				margin-bottom: 0;
+				color: var(--soft-ink);
+				font-size: clamp(1rem, 1.6vw, 1.12rem);
+				line-height: 1.7;
+			}
+
+			.post-sheet-body {
+				padding: clamp(28px, 5vw, 56px);
+			}
+
+			.post-sheet-body :global(p) {
+				max-width: 62ch;
+				margin: 0 0 1.3em;
+				font-size: 1.03rem;
+				line-height: 1.8;
+			}
+
+			.post-sheet-body :global(p:last-child) {
+				margin-bottom: 0;
+			}
+
+			.post-sheet-body :global(h2) {
+				margin: 2.2em 0 .7em;
+				font-family: var(--serif);
+				font-size: clamp(1.45rem, 2vw, 2rem);
+				font-weight: 500;
+				letter-spacing: -.045em;
+			}
+
+			.post-sheet-body :global(ul),
+			.post-sheet-body :global(ol) {
+				max-width: 62ch;
+				padding-left: 1.2em;
+				margin: 0 0 1.3em;
+			}
+
+			.post-sheet-body :global(li) {
+				margin-bottom: .6em;
+				line-height: 1.7;
+			}
+
+			@media (max-width: 640px) {
+				.site-bar {
+					padding-inline: 16px;
+				}
+
+				.post-sheet-header,
+				.post-sheet-body {
+					padding: 24px 18px;
+				}
+			}
+		</style>
+	</body>
+</html>
