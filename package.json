@@ -9,10 +9,13 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "generate-types": "wrangler types"
   },
   "dependencies": {
+    "@astrojs/cloudflare": "^14.4.0",
     "@astrojs/markdown-remark": "^7.3.3",
+    "@astrojs/markdown-satteri": "^0.4.4",
     "@myriaddreamin/rehype-typst": "^0.7.0",
     "@myriaddreamin/typst-ts-node-compiler": "^0.7.0",
     "@myriaddreamin/typst-ts-renderer": "^0.7.0",
@@ -23,7 +26,9 @@
     "hast-util-from-html-isomorphic": "^2.0.0",
     "hast-util-to-text": "^4.0.2",
     "remark-math": "^6.0.0",
+    "satteri": "^0.10.5",
     "tailwindcss": "^4.3.3",
-    "unist-util-visit-parents": "^6.0.2"
+    "unist-util-visit-parents": "^6.0.2",
+    "wrangler": "^4.151.1"
   }
 }

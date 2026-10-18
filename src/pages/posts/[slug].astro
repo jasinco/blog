@@ -1,5 +1,5 @@
 ---
-import { ClientRouter,fade } from "astro:transitions";
+import { ClientRouter } from "astro:transitions";
 import { getCollection, render } from "astro:content";
 import "../../styles/global.css";
 
@@ -39,7 +39,7 @@ const dateFormatter = new Intl.DateTimeFormat("en-GB", {
 			<a class="post-back" href="/">Back to notes</a>
 		</header>
 
-		<main class="stage post-page" transition:animate={fade({duration: '0.5s'})}>
+		<main class="stage post-page" transition:animate="none">
 			<article class="post-sheet">
 				<div class="post-mini-bar" aria-hidden="true">
 					<span class="post-mini-title">{post.data.title}</span>
@@ -61,8 +61,11 @@ const dateFormatter = new Intl.DateTimeFormat("en-GB", {
 					<p class="post-sheet-excerpt">{post.data.excerpt}</p>
 				</header>
 
-				<div class="post-sheet-body">
-					<Content />
+				<div class="post-body-wrapper">
+					<div class="post-body-mask" aria-hidden="true"></div>
+					<div class="post-sheet-body">
+						<Content />
+					</div>
 				</div>
 			</article>
 		</main>
@@ -196,8 +199,42 @@ const dateFormatter = new Intl.DateTimeFormat("en-GB", {
 				line-height: 1.7;
 			}
 
+			.post-body-wrapper {
+				position: relative;
+				width: 100%;
+			}
+
+			.post-body-mask {
+				position: absolute;
+				inset: 0;
+				z-index: 5;
+				pointer-events: none;
+				opacity: 0;
+				clip-path: inset(100% 0 0 0);
+				background: color-mix(in srgb, var(--surface) 80%, transparent);
+				-webkit-backdrop-filter: blur(12px);
+				backdrop-filter: blur(12px);
+				border-top: 1px dashed var(--line);
+				transition: clip-path .55s cubic-bezier(0.16, 1, 0.3, 1), opacity .55s cubic-bezier(0.16, 1, 0.3, 1);
+			}
+
+			.post-body-mask.is-active {
+				opacity: 1;
+				clip-path: inset(0 0 0 0);
+				pointer-events: auto;
+				cursor: pointer;
+			}
+
 			.post-sheet-body {
 				padding: clamp(24px, 4vw, 52px);
+				transition: filter .55s cubic-bezier(0.16, 1, 0.3, 1), opacity .55s cubic-bezier(0.16, 1, 0.3, 1);
+			}
+
+			.post-sheet-body.is-blurred {
+				filter: blur(10px);
+				opacity: .32;
+				user-select: none;
+				will-change: filter, opacity;
 			}
 
 			.post-sheet-body :global(p) {
@@ -211,24 +248,279 @@ const dateFormatter = new Intl.DateTimeFormat("en-GB", {
 				margin-bottom: 0;
 			}
 
+			.post-sheet-body :global(h1),
 			.post-sheet-body :global(h2) {
-				margin: 2.2em 0 .7em;
+				margin: 1.8em 0 .7em;
 				font-family: var(--serif);
 				font-size: clamp(1.45rem, 2vw, 2rem);
 				font-weight: 500;
 				letter-spacing: -.045em;
 			}
 
-			.post-sheet-body :global(ul),
+			.post-sheet-body :global(h3) {
+				margin: 1.4em 0 .5em;
+				font-family: var(--serif);
+				font-size: clamp(1.15rem, 1.5vw, 1.35rem);
+				font-weight: 500;
+				letter-spacing: -.03em;
+			}
+
+			/* Section Folding & Indent Guide Lines */
+			.post-sheet-body :global(.fold-section) {
+				position: relative;
+			}
+
+			.post-sheet-body :global(.fold-header) {
+				position: relative;
+				display: flex;
+				align-items: center;
+				gap: 8px;
+				margin-top: 1.8em;
+				margin-bottom: .6em;
+			}
+
+			.post-sheet-body :global(.fold-section:first-child > .fold-header) {
+				margin-top: .4em;
+			}
+
+			.post-sheet-body :global(.fold-header > h1),
+			.post-sheet-body :global(.fold-header > h2),
+			.post-sheet-body :global(.fold-header > h3),
+			.post-sheet-body :global(.fold-header > h4),
+			.post-sheet-body :global(.fold-header > h5),
+			.post-sheet-body :global(.fold-header > h6) {
+				margin: 0 !important;
+			}
+
+			.post-sheet-body :global(.fold-toggle) {
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				width: 18px;
+				height: 18px;
+				padding: 0;
+				background: transparent;
+				border: none;
+				border-radius: 3px;
+				color: var(--soft-ink);
+				cursor: pointer;
+				opacity: .45;
+				transition: opacity .15s ease, background-color .15s ease, color .15s ease;
+				flex-shrink: 0;
+			}
+
+			.post-sheet-body :global(.fold-header:hover .fold-toggle),
+			.post-sheet-body :global(.fold-toggle:hover),
+			.post-sheet-body :global(.fold-toggle:focus-visible) {
+				opacity: 1;
+				color: var(--green-ink);
+				background: color-mix(in srgb, var(--green-wash) 60%, transparent);
+			}
+
+			.post-sheet-body :global(.fold-toggle:focus-visible) {
+				outline: 2px solid var(--green-ink);
+				outline-offset: 1px;
+			}
+
+			.post-sheet-body :global(.fold-chevron) {
+				display: block;
+				transition: transform .2s cubic-bezier(0.16, 1, 0.3, 1);
+				transform: rotate(90deg);
+			}
+
+			.post-sheet-body :global(.fold-section.is-folded > .fold-header .fold-chevron) {
+				transform: rotate(0deg);
+			}
+
+			.post-sheet-body :global(.fold-section.is-folded > .fold-header .fold-toggle) {
+				opacity: .85;
+				color: var(--green-ink);
+			}
+
+			.post-sheet-body :global(.fold-section.is-empty > .fold-header .fold-toggle) {
+				visibility: hidden;
+				pointer-events: none;
+			}
+
+			.post-sheet-body :global(.fold-badge) {
+				display: none;
+				align-items: center;
+				justify-content: center;
+				padding: 1px 7px;
+				font-family: "SFMono-Regular", "Cascadia Mono", Menlo, monospace;
+				font-size: .68rem;
+				line-height: 1.3;
+				color: var(--soft-ink);
+				background: color-mix(in srgb, var(--surface) 90%, white 10%);
+				border: 1px solid var(--line);
+				border-radius: 3px;
+				cursor: pointer;
+				transition: all .15s ease;
+				user-select: none;
+			}
+
+			.post-sheet-body :global(.fold-badge:hover) {
+				color: var(--green-ink);
+				border-color: var(--green-ink);
+				background: var(--green-wash);
+			}
+
+			.post-sheet-body :global(.fold-section.is-folded > .fold-header .fold-badge) {
+				display: inline-flex;
+			}
+
+			.post-sheet-body :global(.fold-body) {
+				position: relative;
+				padding-left: 26px;
+			}
+
+			.post-sheet-body :global(.fold-section.is-folded > .fold-body) {
+				display: none;
+			}
+
 			.post-sheet-body :global(ol) {
+				list-style-type: decimal;
 				max-width: 62ch;
-				padding-left: 1.2em;
+				padding-left: 1.8em;
 				margin: 0 0 1.3em;
+			}
+
+			.post-sheet-body :global(ul) {
+				list-style-type: disc;
+				max-width: 62ch;
+				padding-left: 1.5em;
+				margin: 0 0 1.3em;
+			}
+
+			.post-sheet-body :global(ol ol) {
+				list-style-type: lower-alpha;
+				margin: .4em 0;
+				padding-left: 1.4em;
+			}
+
+			.post-sheet-body :global(ol ol ol) {
+				list-style-type: lower-roman;
+			}
+
+			.post-sheet-body :global(ul ul) {
+				list-style-type: circle;
+				margin: .4em 0;
+				padding-left: 1.4em;
+			}
+
+			.post-sheet-body :global(ol > li::marker) {
+				font-family: "SFMono-Regular", "Cascadia Mono", Menlo, monospace;
+				font-size: .88em;
+				font-weight: 500;
+				color: var(--soft-ink);
+			}
+
+			.post-sheet-body :global(ul > li::marker) {
+				color: var(--soft-ink);
 			}
 
 			.post-sheet-body :global(li) {
 				margin-bottom: .6em;
 				line-height: 1.7;
+				padding-left: .25em;
+			}
+
+			.post-sheet-body :global(li:last-child) {
+				margin-bottom: 0;
+			}
+
+			/* Tables */
+			.post-sheet-body :global(.table-wrapper) {
+				width: 100%;
+				max-width: 100%;
+				margin: 1.8em 0 2.2em;
+				overflow-x: auto;
+				-webkit-overflow-scrolling: touch;
+				border: 1px solid var(--line);
+				border-radius: 2px;
+				background: color-mix(in srgb, var(--surface) 60%, transparent);
+			}
+
+			.post-sheet-body :global(table) {
+				width: 100%;
+				border-collapse: collapse;
+				border-spacing: 0;
+				margin: 1.8em 0 2.2em;
+				font-size: .92rem;
+				line-height: 1.6;
+				text-align: left;
+			}
+
+			.post-sheet-body :global(.table-wrapper > table) {
+				margin: 0;
+			}
+
+			.post-sheet-body :global(thead) {
+				background: color-mix(in srgb, var(--canvas) 60%, var(--surface) 40%);
+				border-bottom: 1px solid var(--line);
+			}
+
+			.post-sheet-body :global(th) {
+				padding: 12px 18px;
+				font-family: "SFMono-Regular", "Cascadia Mono", Menlo, monospace;
+				font-size: .74rem;
+				font-weight: 600;
+				letter-spacing: .08em;
+				text-transform: uppercase;
+				color: var(--soft-ink);
+				white-space: nowrap;
+				border-bottom: 1px solid var(--line);
+			}
+
+			.post-sheet-body :global(td) {
+				padding: 13px 18px;
+				border-bottom: 1px solid color-mix(in srgb, var(--line) 60%, transparent);
+				color: var(--ink);
+				vertical-align: middle;
+			}
+
+			.post-sheet-body :global(tbody tr:last-child td) {
+				border-bottom: none;
+			}
+
+			.post-sheet-body :global(tbody tr) {
+				transition: background-color .15s ease;
+			}
+
+			.post-sheet-body :global(tbody tr:hover) {
+				background: color-mix(in srgb, var(--green-wash) 30%, transparent);
+			}
+
+			.post-sheet-body :global(td:first-child) {
+				font-weight: 500;
+				color: var(--ink);
+			}
+
+			.post-sheet-body :global(td code) {
+				font-family: "SFMono-Regular", "Cascadia Mono", Menlo, monospace;
+				font-size: .84em;
+				padding: 2px 6px;
+				background: var(--green-wash);
+				color: var(--green-ink);
+				border: 1px solid var(--line);
+				border-radius: 2px;
+			}
+
+			.post-sheet-body :global(.table-wrapper)::-webkit-scrollbar {
+				height: 5px;
+			}
+
+			.post-sheet-body :global(.table-wrapper)::-webkit-scrollbar-track {
+				background: var(--surface);
+			}
+
+			.post-sheet-body :global(.table-wrapper)::-webkit-scrollbar-thumb {
+				background: var(--line);
+				border-radius: 2px;
+			}
+
+			.post-sheet-body :global(.table-wrapper)::-webkit-scrollbar-thumb:hover {
+				background: var(--soft-ink);
 			}
 
 			@media (max-width: 640px) {
@@ -245,16 +537,107 @@ const dateFormatter = new Intl.DateTimeFormat("en-GB", {
 				.post-sheet-body {
 					padding: 20px 16px;
 				}
+
+				.post-sheet-body :global(.fold-body) {
+					padding-left: 18px;
+				}
+
+				.post-sheet-body :global(th),
+				.post-sheet-body :global(td) {
+					padding: 10px 14px;
+					font-size: .85rem;
+				}
+
+				.post-sheet-body :global(th) {
+					font-size: .7rem;
+				}
 			}
 
 			@media (prefers-reduced-motion: reduce) {
 				.post-mini-bar {
 					transition: none;
 				}
+
+				.post-sheet {
+					opacity: 1 !important;
+				}
+
+				.post-body-mask {
+					display: none !important;
+					opacity: 0 !important;
+				}
+
+				.post-sheet-body {
+					transition: none !important;
+					filter: none !important;
+					opacity: 1 !important;
+				}
 			}
 		</style>
 
 		<script>
+			import { animate } from "animejs";
+
+			let maskClearTimer: number | undefined;
+
+			const clearMask = () => {
+				if (maskClearTimer) {
+					window.clearTimeout(maskClearTimer);
+					maskClearTimer = undefined;
+				}
+				const mask = document.querySelector<HTMLElement>(".post-body-mask");
+				const body = document.querySelector<HTMLElement>(".post-sheet-body");
+				mask?.classList.remove("is-active");
+				body?.classList.remove("is-blurred");
+			};
+
+			const runPostEntranceAnimation = () => {
+				const sheet = document.querySelector<HTMLElement>(".post-sheet");
+				const body = document.querySelector<HTMLElement>(".post-sheet-body");
+				const mask = document.querySelector<HTMLElement>(".post-body-mask");
+				if (!sheet) return;
+
+				if (maskClearTimer) {
+					window.clearTimeout(maskClearTimer);
+					maskClearTimer = undefined;
+				}
+
+				const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+				if (reduceMotion) {
+					sheet.style.opacity = "1";
+					clearMask();
+					return;
+				}
+
+				// Body starts masked and blurred
+				mask?.classList.add("is-active");
+				body?.classList.add("is-blurred");
+
+				// Step 1: Blinking entrance
+				animate(sheet, {
+					opacity: [0, 1, 0, 1],
+					duration: 320,
+					ease: "linear",
+					onComplete: () => {
+						// Step 2: Header is sharp while body is masked/blurred, then mask executes downward wipe
+						maskClearTimer = window.setTimeout(() => {
+							clearMask();
+						}, 360);
+					},
+				});
+
+				// Interaction clear: dismiss mask immediately on scroll or click
+				const handleInteraction = () => {
+					clearMask();
+					sheet.removeEventListener("scroll", handleInteraction);
+					sheet.removeEventListener("pointerdown", handleInteraction);
+					mask?.removeEventListener("pointerdown", handleInteraction);
+				};
+				sheet.addEventListener("scroll", handleInteraction, { passive: true, once: true });
+				sheet.addEventListener("pointerdown", handleInteraction, { passive: true, once: true });
+				mask?.addEventListener("pointerdown", handleInteraction, { passive: true, once: true });
+			};
+
 			const initMiniBar = () => {
 				const win = window as Window & {
 					__miniBarObserver?: IntersectionObserver;
@@ -281,8 +664,174 @@ const dateFormatter = new Intl.DateTimeFormat("en-GB", {
 				win.__miniBarObserver.observe(header);
 			};
 
-			initMiniBar();
-			document.addEventListener("astro:page-load", initMiniBar);
+			// Hook into Astro's router lifecycle: astro:before-swap
+			document.addEventListener("astro:before-swap", (event) => {
+				const isTargetPost = Boolean(event.newDocument.querySelector(".post-sheet"));
+				if (!isTargetPost) return;
+
+				const originalSwap = event.swap;
+				event.swap = () => {
+					originalSwap();
+					const sheet = document.querySelector<HTMLElement>(".post-sheet");
+					const body = document.querySelector<HTMLElement>(".post-sheet-body");
+					const mask = document.querySelector<HTMLElement>(".post-body-mask");
+					const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+					if (!reduceMotion) {
+						if (sheet) {
+							sheet.style.opacity = "0";
+						}
+						if (mask) {
+							mask.classList.add("is-active");
+						}
+						if (body) {
+							body.classList.add("is-blurred");
+						}
+					}
+				};
+			});
+
+			const enhanceTables = () => {
+				const tables = document.querySelectorAll<HTMLTableElement>(".post-sheet-body table");
+				tables.forEach((table) => {
+					if (table.parentElement?.classList.contains("table-wrapper")) return;
+					const wrapper = document.createElement("div");
+					wrapper.className = "table-wrapper";
+					wrapper.setAttribute("role", "region");
+					wrapper.setAttribute("aria-label", "Data table");
+					wrapper.setAttribute("tabindex", "0");
+					table.parentNode?.insertBefore(wrapper, table);
+					wrapper.appendChild(table);
+				});
+			};
+
+			const initFolding = () => {
+				const body = document.querySelector<HTMLElement>(".post-sheet-body");
+				if (!body || body.dataset.foldingInitialized === "true") return;
+
+				const children = Array.from(body.children);
+				const hasHeadings = children.some((el) => /^H[1-6]$/i.test(el.tagName));
+				if (!hasHeadings) return;
+
+				const rootFragment = document.createDocumentFragment();
+				const stack: { level: number; container: HTMLElement | DocumentFragment }[] = [
+					{ level: 0, container: rootFragment }
+				];
+
+				for (const child of children) {
+					const isHeading = /^H[1-6]$/i.test(child.tagName);
+					if (isHeading) {
+						const level = parseInt(child.tagName[1], 10);
+
+						while (stack.length > 1 && stack[stack.length - 1].level >= level) {
+							stack.pop();
+						}
+
+						const parent = stack[stack.length - 1].container;
+
+						const section = document.createElement("section");
+						section.className = "fold-section";
+						section.dataset.level = String(level);
+
+						const header = document.createElement("div");
+						header.className = "fold-header";
+
+						const toggle = document.createElement("button");
+						toggle.type = "button";
+						toggle.className = "fold-toggle";
+						toggle.setAttribute("aria-expanded", "true");
+						toggle.setAttribute("aria-label", "Toggle section");
+						toggle.innerHTML = `<svg class="fold-chevron" viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5l4.5 4.5-4.5 4.5" /></svg>`;
+
+						const badge = document.createElement("button");
+						badge.type = "button";
+						badge.className = "fold-badge";
+						badge.setAttribute("aria-label", "Unfold section");
+						badge.title = "Click to expand";
+						badge.textContent = "···";
+
+						header.appendChild(toggle);
+						header.appendChild(child);
+						header.appendChild(badge);
+						section.appendChild(header);
+
+						const foldBody = document.createElement("div");
+						foldBody.className = "fold-body";
+						section.appendChild(foldBody);
+
+						parent.appendChild(section);
+						stack.push({ level, container: foldBody });
+					} else {
+						stack[stack.length - 1].container.appendChild(child);
+					}
+				}
+
+				rootFragment.querySelectorAll<HTMLElement>(".fold-section").forEach((sec) => {
+					const foldBody = sec.querySelector<HTMLElement>(":scope > .fold-body");
+					if (!foldBody || foldBody.children.length === 0) {
+						sec.classList.add("is-empty");
+					}
+				});
+
+				body.appendChild(rootFragment);
+				body.dataset.foldingInitialized = "true";
+			};
+
+			const revealHashTarget = () => {
+				const hash = window.location.hash;
+				if (!hash) return;
+				const id = decodeURIComponent(hash.slice(1));
+				const target = document.getElementById(id);
+				if (!target) return;
+
+				let parent = target.parentElement;
+				while (parent && !parent.classList.contains("post-sheet-body")) {
+					if (parent.classList.contains("fold-section") && parent.classList.contains("is-folded")) {
+						parent.classList.remove("is-folded");
+						const toggle = parent.querySelector<HTMLButtonElement>(":scope > .fold-header > .fold-toggle");
+						toggle?.setAttribute("aria-expanded", "true");
+					}
+					parent = parent.parentElement;
+				}
+			};
+
+			// Global delegated click handler for fold toggles and badges
+			document.addEventListener("click", (event) => {
+				const target = event.target as HTMLElement | null;
+				if (!target) return;
+
+				const toggleBtn = target.closest<HTMLButtonElement>(".fold-toggle, .fold-badge");
+				if (!toggleBtn) return;
+
+				const section = toggleBtn.closest<HTMLElement>(".fold-section");
+				if (!section) return;
+
+				const isFolded = section.classList.toggle("is-folded");
+				const toggle = section.querySelector<HTMLButtonElement>(":scope > .fold-header > .fold-toggle");
+				if (toggle) {
+					toggle.setAttribute("aria-expanded", isFolded ? "false" : "true");
+				}
+			});
+
+			window.addEventListener("hashchange", revealHashTarget);
+
+			document.addEventListener("astro:page-load", () => {
+				initFolding();
+				runPostEntranceAnimation();
+				initMiniBar();
+				enhanceTables();
+				revealHashTarget();
+			});
+
+			window.addEventListener("pageshow", (event) => {
+				if (event.persisted) {
+					initFolding();
+					runPostEntranceAnimation();
+					initMiniBar();
+					enhanceTables();
+					revealHashTarget();
+				}
+			});
 		</script>
 	</body>
 </html>
