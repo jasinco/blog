@@ -108,7 +108,7 @@ $pin("l1")${code}$
 					const cleaned = attrs.replace(/\bclass="[^"]*"/, '').replace(/\bstyle="[^"]*"/, '').trim();
 					return `<svg class="typst-doc typst-display" style="${style}" ${cleaned}>`;
 				});
-				finalHtml = `<div class="typst-display-wrapper" style="overflow-x: auto; margin: 1.6em 0; text-align: left;">${finalHtml}</div>`;
+				finalHtml = `<div class="typst-display-wrapper" style="overflow-x: auto; margin: 1.6em 0; padding: 0.25rem 0 0.25rem 1.5rem; text-align: left;">${finalHtml}</div>`;
 			} else {
 				const shift = height - (baselinePosition ?? height);
 				const shiftEm = (shift / defaultEm).toFixed(3);
@@ -180,6 +180,12 @@ export default function satteriTypst(options = {}) {
 			let value = (node.value || '').trim();
 			if (value.startsWith('$$') && value.endsWith('$$')) {
 				value = value.slice(2, -2).trim();
+			}
+			if (!value.includes('&') && value.includes('\n')) {
+				value = value
+					.split(/\r?\n/)
+					.map((line) => (line.trim() ? `& ${line}` : line))
+					.join('\n');
 			}
 			try {
 				const html = compileTypstMath(value, true, textColor, displayScale);
