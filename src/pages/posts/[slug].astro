@@ -573,45 +573,6 @@ const postTransition = {
 		</style>
 
 		<script>
-			const EASE_OUT_EXPO = "cubic-bezier(0.16, 1, 0.3, 1)";
-			let activeAnimation: Animation | null = null;
-			let isClientNavigation = false;
-
-			const runInitialLoadAnimation = () => {
-				const sheet = document.querySelector<HTMLElement>(".post-sheet");
-				if (!sheet) return;
-
-				activeAnimation?.cancel();
-				activeAnimation = null;
-
-				const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-				if (reduceMotion) {
-					sheet.style.opacity = "";
-					sheet.style.transform = "";
-					return;
-				}
-
-				sheet.style.transformOrigin = "top center";
-				const anim = sheet.animate(
-					[
-						{ opacity: 0, transform: "scale3d(0.5, 0.5, 1)" },
-						{ opacity: 1, transform: "scale3d(1, 1, 1)" },
-					],
-					{
-						duration: 680,
-						easing: EASE_OUT_EXPO,
-						fill: "backwards",
-					}
-				);
-
-				anim.onfinish = () => {
-					sheet.style.transformOrigin = "";
-					anim.cancel();
-				};
-
-				activeAnimation = anim;
-			};
-
 			const initMiniBar = () => {
 				const win = window as Window & {
 					__miniBarObserver?: IntersectionObserver;
@@ -637,12 +598,6 @@ const postTransition = {
 
 				win.__miniBarObserver.observe(header);
 			};
-
-			document.addEventListener("astro:before-swap", () => {
-				activeAnimation?.cancel();
-				activeAnimation = null;
-				isClientNavigation = true;
-			});
 
 			const revealHashTarget = () => {
 				const hash = window.location.hash;
@@ -685,10 +640,6 @@ const postTransition = {
 			const setupPostPage = () => {
 				revealHashTarget();
 				initMiniBar();
-				if (!isClientNavigation || !document.startViewTransition) {
-					runInitialLoadAnimation();
-				}
-				isClientNavigation = false;
 			};
 
 			document.addEventListener("astro:page-load", setupPostPage);
