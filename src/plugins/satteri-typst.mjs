@@ -103,12 +103,12 @@ $pin("l1")${code}$
 			let finalHtml = rawSvg;
 			if (displayMode) {
 				const scaledWidth = ((width / defaultEm) * displayScale).toFixed(3);
-				const style = `overflow: visible; width: ${scaledWidth}em; max-width: 100%; height: auto; display: block; margin: 0 auto; color: ${textColor};`;
+				const style = `overflow: visible; width: ${scaledWidth}em; max-width: 100%; height: auto; display: block; margin: 0; color: ${textColor};`;
 				finalHtml = finalHtml.replace(/<svg\b([^>]*)>/, (m, attrs) => {
 					const cleaned = attrs.replace(/\bclass="[^"]*"/, '').replace(/\bstyle="[^"]*"/, '').trim();
 					return `<svg class="typst-doc typst-display" style="${style}" ${cleaned}>`;
 				});
-				finalHtml = `<div class="typst-display-wrapper" style="overflow-x: auto; margin: 1.6em 0; text-align: center;">${finalHtml}</div>`;
+				finalHtml = `<div class="typst-display-wrapper" style="overflow-x: auto; margin: 1.6em 0; text-align: left;">${finalHtml}</div>`;
 			} else {
 				const shift = height - (baselinePosition ?? height);
 				const shiftEm = (shift / defaultEm).toFixed(3);

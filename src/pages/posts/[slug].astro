@@ -22,6 +22,34 @@ const dateFormatter = new Intl.DateTimeFormat("en-GB", {
 	month: "long",
 	year: "numeric",
 });
+
+const postTransitionAnim = {
+	old: {
+		name: "astroFadeOut",
+		duration: "240ms",
+		easing: "cubic-bezier(0.16, 1, 0.3, 1)",
+		fillMode: "both",
+	},
+	new: [
+		{
+			name: "astroFadeIn",
+			duration: "680ms",
+			easing: "cubic-bezier(0.16, 1, 0.3, 1)",
+			fillMode: "both",
+		},
+		{
+			name: "postScaleFromHalf",
+			duration: "680ms",
+			easing: "cubic-bezier(0.16, 1, 0.3, 1)",
+			fillMode: "both",
+		},
+	],
+};
+
+const postTransition = {
+	forwards: postTransitionAnim,
+	backwards: postTransitionAnim,
+};
 ---
 
 <html lang="en">
@@ -39,7 +67,7 @@ const dateFormatter = new Intl.DateTimeFormat("en-GB", {
 			<a class="post-back" href="/">Back to notes</a>
 		</header>
 
-		<main class="stage post-page" transition:animate="none">
+		<main class="stage post-page" transition:animate={postTransition}>
 			<article class="post-sheet">
 				<div class="post-mini-bar" aria-hidden="true">
 					<span class="post-mini-title">{post.data.title}</span>
@@ -61,11 +89,8 @@ const dateFormatter = new Intl.DateTimeFormat("en-GB", {
 					<p class="post-sheet-excerpt">{post.data.excerpt}</p>
 				</header>
 
-				<div class="post-body-wrapper">
-					<div class="post-body-mask" aria-hidden="true"></div>
-					<div class="post-sheet-body">
-						<Content />
-					</div>
+				<div class="post-sheet-body">
+					<Content />
 				</div>
 			</article>
 		</main>
@@ -96,20 +121,23 @@ const dateFormatter = new Intl.DateTimeFormat("en-GB", {
 				margin-bottom: -48px;
 				overflow: hidden;
 				opacity: 0;
-				transform: translateY(-100%);
+				visibility: hidden;
+				transform: translate3d(0, -100%, 0);
 				pointer-events: none;
 				background: color-mix(in srgb, var(--surface) 88%, transparent);
-				-webkit-backdrop-filter: blur(8px);
-				backdrop-filter: blur(8px);
 				border-bottom: 1px solid transparent;
-				transition: transform .25s ease, opacity .25s ease, border-bottom-color .25s ease;
+				transition: transform .25s ease, opacity .25s ease, border-bottom-color .25s ease, visibility 0s linear .25s;
 			}
 
 			.post-mini-bar.is-visible {
 				opacity: 1;
-				transform: translateY(0);
+				visibility: visible;
+				transform: translate3d(0, 0, 0);
 				pointer-events: auto;
+				-webkit-backdrop-filter: blur(8px);
+				backdrop-filter: blur(8px);
 				border-bottom-color: var(--line);
+				transition: transform .25s ease, opacity .25s ease, border-bottom-color .25s ease, visibility 0s linear 0s;
 			}
 
 			.post-mini-title {
@@ -199,42 +227,8 @@ const dateFormatter = new Intl.DateTimeFormat("en-GB", {
 				line-height: 1.7;
 			}
 
-			.post-body-wrapper {
-				position: relative;
-				width: 100%;
-			}
-
-			.post-body-mask {
-				position: absolute;
-				inset: 0;
-				z-index: 5;
-				pointer-events: none;
-				opacity: 0;
-				clip-path: inset(100% 0 0 0);
-				background: color-mix(in srgb, var(--surface) 80%, transparent);
-				-webkit-backdrop-filter: blur(12px);
-				backdrop-filter: blur(12px);
-				border-top: 1px dashed var(--line);
-				transition: clip-path .55s cubic-bezier(0.16, 1, 0.3, 1), opacity .55s cubic-bezier(0.16, 1, 0.3, 1);
-			}
-
-			.post-body-mask.is-active {
-				opacity: 1;
-				clip-path: inset(0 0 0 0);
-				pointer-events: auto;
-				cursor: pointer;
-			}
-
 			.post-sheet-body {
 				padding: clamp(24px, 4vw, 52px);
-				transition: filter .55s cubic-bezier(0.16, 1, 0.3, 1), opacity .55s cubic-bezier(0.16, 1, 0.3, 1);
-			}
-
-			.post-sheet-body.is-blurred {
-				filter: blur(10px);
-				opacity: .32;
-				user-select: none;
-				will-change: filter, opacity;
 			}
 
 			.post-sheet-body :global(p) {
@@ -560,82 +554,62 @@ const dateFormatter = new Intl.DateTimeFormat("en-GB", {
 
 				.post-sheet {
 					opacity: 1 !important;
+					transform: none !important;
 				}
+			}
+		</style>
 
-				.post-body-mask {
-					display: none !important;
-					opacity: 0 !important;
+		<style is:global>
+			@keyframes postScaleFromHalf {
+				from {
+					transform-origin: top center;
+					transform: scale(0.5);
 				}
-
-				.post-sheet-body {
-					transition: none !important;
-					filter: none !important;
-					opacity: 1 !important;
+				to {
+					transform-origin: top center;
+					transform: scale(1);
 				}
 			}
 		</style>
 
 		<script>
-			import { animate } from "animejs";
+			const EASE_OUT_EXPO = "cubic-bezier(0.16, 1, 0.3, 1)";
+			let activeAnimation: Animation | null = null;
+			let isClientNavigation = false;
 
-			let maskClearTimer: number | undefined;
-
-			const clearMask = () => {
-				if (maskClearTimer) {
-					window.clearTimeout(maskClearTimer);
-					maskClearTimer = undefined;
-				}
-				const mask = document.querySelector<HTMLElement>(".post-body-mask");
-				const body = document.querySelector<HTMLElement>(".post-sheet-body");
-				mask?.classList.remove("is-active");
-				body?.classList.remove("is-blurred");
-			};
-
-			const runPostEntranceAnimation = () => {
+			const runInitialLoadAnimation = () => {
 				const sheet = document.querySelector<HTMLElement>(".post-sheet");
-				const body = document.querySelector<HTMLElement>(".post-sheet-body");
-				const mask = document.querySelector<HTMLElement>(".post-body-mask");
 				if (!sheet) return;
 
-				if (maskClearTimer) {
-					window.clearTimeout(maskClearTimer);
-					maskClearTimer = undefined;
-				}
+				activeAnimation?.cancel();
+				activeAnimation = null;
 
 				const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 				if (reduceMotion) {
-					sheet.style.opacity = "1";
-					clearMask();
+					sheet.style.opacity = "";
+					sheet.style.transform = "";
 					return;
 				}
 
-				// Body starts masked and blurred
-				mask?.classList.add("is-active");
-				body?.classList.add("is-blurred");
+				sheet.style.transformOrigin = "top center";
+				const anim = sheet.animate(
+					[
+						{ opacity: 0, transform: "scale3d(0.5, 0.5, 1)" },
+						{ opacity: 1, transform: "scale3d(1, 1, 1)" },
+					],
+					{
+						duration: 680,
+						easing: EASE_OUT_EXPO,
+						fill: "backwards",
+					}
+				);
 
-				// Step 1: Blinking entrance
-				animate(sheet, {
-					opacity: [0, 1, 0, 1],
-					duration: 320,
-					ease: "linear",
-					onComplete: () => {
-						// Step 2: Header is sharp while body is masked/blurred, then mask executes downward wipe
-						maskClearTimer = window.setTimeout(() => {
-							clearMask();
-						}, 360);
-					},
-				});
-
-				// Interaction clear: dismiss mask immediately on scroll or click
-				const handleInteraction = () => {
-					clearMask();
-					sheet.removeEventListener("scroll", handleInteraction);
-					sheet.removeEventListener("pointerdown", handleInteraction);
-					mask?.removeEventListener("pointerdown", handleInteraction);
+				anim.onfinish = () => {
+					sheet.style.transformOrigin = "";
+					anim.cancel();
 				};
-				sheet.addEventListener("scroll", handleInteraction, { passive: true, once: true });
-				sheet.addEventListener("pointerdown", handleInteraction, { passive: true, once: true });
-				mask?.addEventListener("pointerdown", handleInteraction, { passive: true, once: true });
+
+				activeAnimation = anim;
 			};
 
 			const initMiniBar = () => {
@@ -664,118 +638,11 @@ const dateFormatter = new Intl.DateTimeFormat("en-GB", {
 				win.__miniBarObserver.observe(header);
 			};
 
-			// Hook into Astro's router lifecycle: astro:before-swap
-			document.addEventListener("astro:before-swap", (event) => {
-				const isTargetPost = Boolean(event.newDocument.querySelector(".post-sheet"));
-				if (!isTargetPost) return;
-
-				const originalSwap = event.swap;
-				event.swap = () => {
-					originalSwap();
-					const sheet = document.querySelector<HTMLElement>(".post-sheet");
-					const body = document.querySelector<HTMLElement>(".post-sheet-body");
-					const mask = document.querySelector<HTMLElement>(".post-body-mask");
-					const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-					if (!reduceMotion) {
-						if (sheet) {
-							sheet.style.opacity = "0";
-						}
-						if (mask) {
-							mask.classList.add("is-active");
-						}
-						if (body) {
-							body.classList.add("is-blurred");
-						}
-					}
-				};
+			document.addEventListener("astro:before-swap", () => {
+				activeAnimation?.cancel();
+				activeAnimation = null;
+				isClientNavigation = true;
 			});
-
-			const enhanceTables = () => {
-				const tables = document.querySelectorAll<HTMLTableElement>(".post-sheet-body table");
-				tables.forEach((table) => {
-					if (table.parentElement?.classList.contains("table-wrapper")) return;
-					const wrapper = document.createElement("div");
-					wrapper.className = "table-wrapper";
-					wrapper.setAttribute("role", "region");
-					wrapper.setAttribute("aria-label", "Data table");
-					wrapper.setAttribute("tabindex", "0");
-					table.parentNode?.insertBefore(wrapper, table);
-					wrapper.appendChild(table);
-				});
-			};
-
-			const initFolding = () => {
-				const body = document.querySelector<HTMLElement>(".post-sheet-body");
-				if (!body || body.dataset.foldingInitialized === "true") return;
-
-				const children = Array.from(body.children);
-				const hasHeadings = children.some((el) => /^H[1-6]$/i.test(el.tagName));
-				if (!hasHeadings) return;
-
-				const rootFragment = document.createDocumentFragment();
-				const stack: { level: number; container: HTMLElement | DocumentFragment }[] = [
-					{ level: 0, container: rootFragment }
-				];
-
-				for (const child of children) {
-					const isHeading = /^H[1-6]$/i.test(child.tagName);
-					if (isHeading) {
-						const level = parseInt(child.tagName[1], 10);
-
-						while (stack.length > 1 && stack[stack.length - 1].level >= level) {
-							stack.pop();
-						}
-
-						const parent = stack[stack.length - 1].container;
-
-						const section = document.createElement("section");
-						section.className = "fold-section";
-						section.dataset.level = String(level);
-
-						const header = document.createElement("div");
-						header.className = "fold-header";
-
-						const toggle = document.createElement("button");
-						toggle.type = "button";
-						toggle.className = "fold-toggle";
-						toggle.setAttribute("aria-expanded", "true");
-						toggle.setAttribute("aria-label", "Toggle section");
-						toggle.innerHTML = `<svg class="fold-chevron" viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5l4.5 4.5-4.5 4.5" /></svg>`;
-
-						const badge = document.createElement("button");
-						badge.type = "button";
-						badge.className = "fold-badge";
-						badge.setAttribute("aria-label", "Unfold section");
-						badge.title = "Click to expand";
-						badge.textContent = "···";
-
-						header.appendChild(toggle);
-						header.appendChild(child);
-						header.appendChild(badge);
-						section.appendChild(header);
-
-						const foldBody = document.createElement("div");
-						foldBody.className = "fold-body";
-						section.appendChild(foldBody);
-
-						parent.appendChild(section);
-						stack.push({ level, container: foldBody });
-					} else {
-						stack[stack.length - 1].container.appendChild(child);
-					}
-				}
-
-				rootFragment.querySelectorAll<HTMLElement>(".fold-section").forEach((sec) => {
-					const foldBody = sec.querySelector<HTMLElement>(":scope > .fold-body");
-					if (!foldBody || foldBody.children.length === 0) {
-						sec.classList.add("is-empty");
-					}
-				});
-
-				body.appendChild(rootFragment);
-				body.dataset.foldingInitialized = "true";
-			};
 
 			const revealHashTarget = () => {
 				const hash = window.location.hash;
@@ -815,21 +682,20 @@ const dateFormatter = new Intl.DateTimeFormat("en-GB", {
 
 			window.addEventListener("hashchange", revealHashTarget);
 
-			document.addEventListener("astro:page-load", () => {
-				initFolding();
-				runPostEntranceAnimation();
-				initMiniBar();
-				enhanceTables();
+			const setupPostPage = () => {
 				revealHashTarget();
-			});
+				initMiniBar();
+				if (!isClientNavigation || !document.startViewTransition) {
+					runInitialLoadAnimation();
+				}
+				isClientNavigation = false;
+			};
+
+			document.addEventListener("astro:page-load", setupPostPage);
 
 			window.addEventListener("pageshow", (event) => {
 				if (event.persisted) {
-					initFolding();
-					runPostEntranceAnimation();
-					initMiniBar();
-					enhanceTables();
-					revealHashTarget();
+					setupPostPage();
 				}
 			});
 		</script>
