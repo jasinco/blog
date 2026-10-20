@@ -46,7 +46,8 @@ const allTags = [...tagCounts.entries()]
 			<p>Personal notes</p>
 		</header>
 
-		<main class="stage" transition:animate="fade">
+		<main class="stage landing-stage" transition:animate="fade">
+			<canvas class="matrix-bg" aria-hidden="true"></canvas>
 			<section class="reading-box" aria-labelledby="page-title">
 				<div class="box-content">
 					<header class="box-header">
@@ -100,6 +101,79 @@ const allTags = [...tagCounts.entries()]
 		<script>
 			import { animate } from "animejs";
 
+			// cmatrix-style digital rain behind the reading box (throttled canvas 2D, ~18fps)
+			const initMatrixRain = () => {
+				const win = window as Window & { __matrixStop?: () => void };
+				win.__matrixStop?.();
+				win.__matrixStop = undefined;
+
+				const canvas = document.querySelector<HTMLCanvasElement>(".matrix-bg");
+				const ctx = canvas?.getContext("2d");
+				if (!canvas || !ctx) return;
+				if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+				const glyphs = "ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ0123456789:.=*+-<>¦".split("");
+				const fontSize = 16;
+				const frameInterval = 55;
+				const rootStyle = getComputedStyle(document.documentElement);
+				const background = rootStyle.getPropertyValue("--canvas").trim() || "#111311";
+				const trail = rootStyle.getPropertyValue("--green-ink").trim() || "#b8d2ad";
+				const head = rootStyle.getPropertyValue("--ink").trim() || "#f0f0e8";
+
+				let drops: number[] = [];
+				let frame = 0;
+				let lastTick = 0;
+
+				const resize = () => {
+					const rect = canvas.getBoundingClientRect();
+					canvas.width = Math.max(1, Math.floor(rect.width));
+					canvas.height = Math.max(1, Math.floor(rect.height));
+					const columns = Math.ceil(canvas.width / fontSize);
+					const rows = Math.ceil(canvas.height / fontSize);
+					drops = Array.from({ length: columns }, () => -Math.random() * rows);
+					ctx.fillStyle = background;
+					ctx.fillRect(0, 0, canvas.width, canvas.height);
+					ctx.font = `${fontSize}px monospace`;
+					ctx.textBaseline = "top";
+				};
+
+				const tick = (time: number) => {
+					frame = requestAnimationFrame(tick);
+					if (time - lastTick < frameInterval) return;
+					lastTick = time;
+
+					// Fade previous frame to leave a trailing tail
+					ctx.globalAlpha = 0.13;
+					ctx.fillStyle = background;
+					ctx.fillRect(0, 0, canvas.width, canvas.height);
+					ctx.globalAlpha = 1;
+
+					for (let i = 0; i < drops.length; i++) {
+						const y = drops[i] * fontSize;
+						if (y >= 0) {
+							const x = i * fontSize;
+							ctx.fillStyle = Math.random() > 0.94 ? head : trail;
+							ctx.fillText(glyphs[Math.floor(Math.random() * glyphs.length)], x, y);
+						}
+						if (y > canvas.height && Math.random() > 0.975) {
+							drops[i] = 0;
+						} else {
+							drops[i]++;
+						}
+					}
+				};
+
+				resize();
+				const observer = new ResizeObserver(resize);
+				observer.observe(canvas);
+				frame = requestAnimationFrame(tick);
+
+				win.__matrixStop = () => {
+					cancelAnimationFrame(frame);
+					observer.disconnect();
+				};
+			};
+
 			const initLandingPage = () => {
 				const win = window as Window & {
 					__landingAnimations?: {
@@ -129,6 +203,8 @@ const allTags = [...tagCounts.entries()]
 				const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 				if (!readingBox || !boxContent) return;
+
+				initMatrixRain();
 
 				const startBoxAnimation = () => {
 					readingBox.style.transformOrigin = "top center";
