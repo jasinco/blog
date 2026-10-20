@@ -1,6 +1,6 @@
 ---
 title: Algorithm
-date: 2026-10-19
+date: 2026-10-20
 excerpt: "What am I doing here"
 draft: false
 tags:
