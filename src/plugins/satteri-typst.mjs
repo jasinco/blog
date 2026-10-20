@@ -63,13 +63,13 @@ function compileTypstMath(code, displayMode, textColor = '#ffffff', displayScale
 	for (let attempt = 0; attempt < 5; attempt++) {
 		const template = displayMode
 			? `#set page(height: auto, width: auto, margin: 0pt, fill: none)
-#set text(font: "CMU Serif", fill: rgb("${hexColor}"))
-#show math.equation: set text(font: ("CMU Serif", "New Computer Modern Math"))
+#set text(font: "New Computer Modern", fill: rgb("${hexColor}"))
+#show math.equation: set text(font: "New Computer Modern Math")
 ${preamble}
 $ ${code} $`
 			: `#set page(height: auto, width: auto, margin: 0pt, fill: none)
-#set text(font: "CMU Serif", fill: rgb("${hexColor}"))
-#show math.equation: set text(font: ("CMU Serif", "New Computer Modern Math"))
+#set text(font: "New Computer Modern", fill: rgb("${hexColor}"))
+#show math.equation: set text(font: "New Computer Modern Math")
 #let s = state("t", (:))
 #let pin(t) = context {
   let width = measure(line(length: here().position().y)).width
