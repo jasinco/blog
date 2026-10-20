@@ -25,6 +25,7 @@
     "astro-typst": "^0.12.4",
     "hast-util-from-html-isomorphic": "^2.0.0",
     "hast-util-to-text": "^4.0.2",
+    "pele": "^1.7.0",
     "remark-math": "^6.0.0",
     "satteri": "^0.10.5",
     "tailwindcss": "^4.3.3",

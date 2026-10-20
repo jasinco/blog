@@ -128,7 +128,7 @@ a {
 	position: relative;
 }
 
-.matrix-bg {
+.animation-bg {
 	position: absolute;
 	inset: 0;
 	z-index: 0;
@@ -620,6 +620,48 @@ button:focus-visible,
 	from {
 		opacity: 0;
 	}
+}
+
+/* Mermaid diagrams (rendered at build time by Pele, see satteri-mermaid.mjs) */
+.mermaid-diagram {
+	margin: 1.8rem 0;
+	padding-left: 1.5rem;
+	overflow-x: auto;
+	--pele-bg: transparent;
+	--pele-fg: var(--ink);
+	--pele-muted: var(--soft-ink);
+	--pele-line: var(--soft-ink);
+	--pele-surface: var(--green-wash);
+	--pele-surface-alt: #2f3b31;
+	--pele-border: rgba(240, 240, 232, .28);
+	--pele-accent: var(--green-ink);
+	--pele-font: var(--sans);
+	--pele-font-mono: var(--code);
+	--pele-radius: 3px;
+}
+
+.mermaid-diagram svg {
+	display: block;
+}
+
+@media (max-width: 600px) {
+	.mermaid-diagram {
+		padding-left: 0;
+	}
+
+	.mermaid-diagram svg {
+		margin-inline: auto;
+	}
+}
+
+.mermaid-error {
+	color: #ef4444;
+	font-family: var(--code);
+	font-size: .85em;
+	background: rgba(239, 68, 68, 0.1);
+	padding: .8em 1em;
+	border-radius: 4px;
+	white-space: pre-wrap;
 }
 
 .typst-error {

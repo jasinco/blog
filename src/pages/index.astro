@@ -47,7 +47,7 @@ const allTags = [...tagCounts.entries()]
 		</header>
 
 		<main class="stage landing-stage" transition:animate="fade">
-			<canvas class="matrix-bg" aria-hidden="true"></canvas>
+			<canvas class="animation-bg" aria-hidden="true"></canvas>
 			<section class="reading-box" aria-labelledby="page-title">
 				<div class="box-content">
 					<header class="box-header">
@@ -107,7 +107,7 @@ const allTags = [...tagCounts.entries()]
 				win.__matrixStop?.();
 				win.__matrixStop = undefined;
 
-				const canvas = document.querySelector<HTMLCanvasElement>(".matrix-bg");
+				const canvas = document.querySelector<HTMLCanvasElement>(".animation-bg");
 				const ctx = canvas?.getContext("2d");
 				if (!canvas || !ctx) return;
 				if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;

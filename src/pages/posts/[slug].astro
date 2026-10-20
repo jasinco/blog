@@ -500,6 +500,35 @@ const postTransition = {
 				border-radius: 2px;
 			}
 
+			/* Links: underlined, with a trailing ↗ */
+			.post-sheet-body :global(a[href]) {
+				color: var(--green-ink);
+				text-decoration: underline;
+				text-decoration-color: color-mix(in srgb, var(--green-ink) 45%, transparent);
+				text-decoration-thickness: 1px;
+				text-underline-offset: .22em;
+				transition: color .15s ease, text-decoration-color .15s ease;
+			}
+
+			.post-sheet-body :global(a[href])::after {
+				content: "↗";
+				display: inline-block; /* keeps the arrow out of the underline */
+				margin-left: .12em;
+				font-size: .78em;
+				line-height: 1;
+				vertical-align: .18em;
+				transition: transform .15s ease;
+			}
+
+			.post-sheet-body :global(a[href]:hover) {
+				color: var(--ink);
+				text-decoration-color: currentColor;
+			}
+
+			.post-sheet-body :global(a[href]:hover)::after {
+				transform: translate(1px, -1px);
+			}
+
 			/* Scrollbars: thin pill thumb, no track, brightens to green on hover */
 			.post-sheet,
 			.post-sheet-body :global(.table-wrapper),
