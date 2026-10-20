@@ -1,38 +1,6 @@
 @import "tailwindcss";
 
 @font-face {
-	font-family: "JuliaMono";
-	src: url("https://cdn.jsdelivr.net/gh/cormullion/juliamono/webfonts/JuliaMono-Light.woff2") format("woff2");
-	font-weight: 300;
-	font-style: normal;
-	font-display: swap;
-}
-
-@font-face {
-	font-family: "JuliaMono";
-	src: url("https://cdn.jsdelivr.net/gh/cormullion/juliamono/webfonts/JuliaMono-Regular.woff2") format("woff2");
-	font-weight: 400;
-	font-style: normal;
-	font-display: swap;
-}
-
-@font-face {
-	font-family: "JuliaMono";
-	src: url("https://cdn.jsdelivr.net/gh/cormullion/juliamono/webfonts/JuliaMono-Medium.woff2") format("woff2");
-	font-weight: 500;
-	font-style: normal;
-	font-display: swap;
-}
-
-@font-face {
-	font-family: "JuliaMono";
-	src: url("https://cdn.jsdelivr.net/gh/cormullion/juliamono/webfonts/JuliaMono-Bold.woff2") format("woff2");
-	font-weight: 600 700;
-	font-style: normal;
-	font-display: swap;
-}
-
-@font-face {
 	font-family: "Ioskeley Mono";
 	src: url("/fonts/ioskeley/IoskeleyMono-Regular.woff2") format("woff2");
 	font-weight: 400;
@@ -90,7 +58,7 @@
 	--green-ink: #b8d2ad;
 	--serif: "Iowan Old Style", "Baskerville", "Times New Roman", serif;
 	--sans: "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
-	--mono: "JuliaMono", "SFMono-Regular", "Cascadia Mono", Menlo, monospace;
+	--mono: "Ioskeley Mono", "SFMono-Regular", "Cascadia Mono", Menlo, monospace;
 	--code: "Ioskeley Mono", "SFMono-Regular", "Cascadia Mono", Menlo, monospace;
 }
 
@@ -155,9 +123,25 @@ a {
 	padding: clamp(16px, 2.5vh, 28px) 24px;
 }
 
+/* Landing page: cmatrix-style rain fills the stage behind the reading box */
+.landing-stage {
+	position: relative;
+}
+
+.matrix-bg {
+	position: absolute;
+	inset: 0;
+	z-index: 0;
+	width: 100%;
+	height: 100%;
+	opacity: .32;
+	pointer-events: none;
+}
+
 /* A folded note: first a horizontal stroke, then a full reading surface. */
 .reading-box {
 	position: relative;
+	z-index: 1;
 	width: min(100%, 860px);
 	height: min(60dvh, 600px);
 	max-height: none;
@@ -646,4 +630,3 @@ button:focus-visible,
 	border-radius: 4px;
 	font-size: 0.9em;
 }
-
