@@ -196,7 +196,7 @@ const postTransition = {
 				border: 1px solid var(--line);
 				border-radius: 2px;
 				color: var(--soft-ink);
-				font-family: "SFMono-Regular", "Cascadia Mono", Menlo, monospace;
+				font-family: var(--mono);
 				font-size: .72rem;
 				line-height: 1.3;
 				text-decoration: none;
@@ -341,7 +341,7 @@ const postTransition = {
 				align-items: center;
 				justify-content: center;
 				padding: 1px 7px;
-				font-family: "SFMono-Regular", "Cascadia Mono", Menlo, monospace;
+				font-family: var(--mono);
 				font-size: .68rem;
 				line-height: 1.3;
 				color: var(--soft-ink);
@@ -403,7 +403,7 @@ const postTransition = {
 			}
 
 			.post-sheet-body :global(ol > li::marker) {
-				font-family: "SFMono-Regular", "Cascadia Mono", Menlo, monospace;
+				font-family: var(--mono);
 				font-size: .88em;
 				font-weight: 500;
 				color: var(--soft-ink);
@@ -456,7 +456,7 @@ const postTransition = {
 
 			.post-sheet-body :global(th) {
 				padding: 12px 18px;
-				font-family: "SFMono-Regular", "Cascadia Mono", Menlo, monospace;
+				font-family: var(--mono);
 				font-size: .74rem;
 				font-weight: 600;
 				letter-spacing: .08em;
@@ -491,7 +491,7 @@ const postTransition = {
 			}
 
 			.post-sheet-body :global(td code) {
-				font-family: "SFMono-Regular", "Cascadia Mono", Menlo, monospace;
+				font-family: var(--code);
 				font-size: .84em;
 				padding: 2px 6px;
 				background: var(--green-wash);
@@ -500,21 +500,70 @@ const postTransition = {
 				border-radius: 2px;
 			}
 
-			.post-sheet-body :global(.table-wrapper)::-webkit-scrollbar {
-				height: 5px;
+			/* Scrollbars: thin pill thumb, no track, brightens to green on hover */
+			.post-sheet,
+			.post-sheet-body :global(.table-wrapper),
+			.post-sheet-body :global(.typst-display-wrapper) {
+				--scroll-thumb: rgba(240, 240, 232, .16);
+				--scroll-thumb-hover: color-mix(in srgb, var(--green-ink) 60%, transparent);
 			}
 
-			.post-sheet-body :global(.table-wrapper)::-webkit-scrollbar-track {
-				background: var(--surface);
+			@supports not selector(::-webkit-scrollbar) {
+				.post-sheet,
+				.post-sheet-body :global(.table-wrapper),
+				.post-sheet-body :global(.typst-display-wrapper) {
+					scrollbar-width: thin;
+					scrollbar-color: var(--scroll-thumb) transparent;
+				}
 			}
 
-			.post-sheet-body :global(.table-wrapper)::-webkit-scrollbar-thumb {
-				background: var(--line);
-				border-radius: 2px;
+			.post-sheet::-webkit-scrollbar {
+				width: 10px;
 			}
 
-			.post-sheet-body :global(.table-wrapper)::-webkit-scrollbar-thumb:hover {
-				background: var(--soft-ink);
+			.post-sheet-body :global(.table-wrapper)::-webkit-scrollbar,
+			.post-sheet-body :global(.typst-display-wrapper)::-webkit-scrollbar {
+				height: 8px;
+			}
+
+			.post-sheet::-webkit-scrollbar-track,
+			.post-sheet-body :global(.table-wrapper)::-webkit-scrollbar-track,
+			.post-sheet-body :global(.typst-display-wrapper)::-webkit-scrollbar-track {
+				background: transparent;
+			}
+
+			.post-sheet::-webkit-scrollbar-button,
+			.post-sheet-body :global(.table-wrapper)::-webkit-scrollbar-button,
+			.post-sheet-body :global(.typst-display-wrapper)::-webkit-scrollbar-button {
+				display: none;
+			}
+
+			.post-sheet::-webkit-scrollbar-corner {
+				background: transparent;
+			}
+
+			.post-sheet::-webkit-scrollbar-thumb,
+			.post-sheet-body :global(.table-wrapper)::-webkit-scrollbar-thumb,
+			.post-sheet-body :global(.typst-display-wrapper)::-webkit-scrollbar-thumb {
+				background: var(--scroll-thumb);
+				background-clip: padding-box;
+				border: 3px solid transparent;
+				border-radius: 999px;
+			}
+
+			.post-sheet-body :global(.table-wrapper)::-webkit-scrollbar-thumb,
+			.post-sheet-body :global(.typst-display-wrapper)::-webkit-scrollbar-thumb {
+				border-width: 2px;
+			}
+
+			.post-sheet::-webkit-scrollbar-thumb:hover,
+			.post-sheet::-webkit-scrollbar-thumb:active,
+			.post-sheet-body :global(.table-wrapper)::-webkit-scrollbar-thumb:hover,
+			.post-sheet-body :global(.table-wrapper)::-webkit-scrollbar-thumb:active,
+			.post-sheet-body :global(.typst-display-wrapper)::-webkit-scrollbar-thumb:hover,
+			.post-sheet-body :global(.typst-display-wrapper)::-webkit-scrollbar-thumb:active {
+				background: var(--scroll-thumb-hover);
+				background-clip: padding-box;
 			}
 
 			@media (max-width: 640px) {
@@ -617,10 +666,81 @@ const postTransition = {
 				}
 			};
 
+			// Mark display math that had to be shrunk to fit the column as expandable
+			const updateMathBlocks = () => {
+				document.querySelectorAll<HTMLElement>(".typst-display-wrapper").forEach((wrapper) => {
+					const svg = wrapper.querySelector<SVGSVGElement>(".typst-display");
+					// Hidden (e.g. inside a folded section): re-measured when it becomes visible
+					if (!svg || wrapper.clientWidth === 0) return;
+					const naturalWidth = parseFloat(svg.style.width) * parseFloat(getComputedStyle(svg).fontSize);
+					const isShrunk = naturalWidth > wrapper.clientWidth + 1;
+					wrapper.classList.toggle("is-shrunk", isShrunk);
+					if (isShrunk) {
+						wrapper.tabIndex = 0;
+						wrapper.setAttribute("role", "button");
+						wrapper.setAttribute("aria-haspopup", "dialog");
+						wrapper.setAttribute("aria-label", "Show equation at full size");
+					} else {
+						wrapper.removeAttribute("tabindex");
+						wrapper.removeAttribute("role");
+						wrapper.removeAttribute("aria-haspopup");
+						wrapper.removeAttribute("aria-label");
+					}
+				});
+			};
+
+			const getMathPopup = () => {
+				let popup = document.querySelector<HTMLDialogElement>(".math-popup");
+				if (popup) return popup;
+
+				popup = document.createElement("dialog");
+				popup.className = "math-popup";
+				popup.setAttribute("aria-label", "Equation");
+				popup.innerHTML = '<button type="button" class="math-popup-close" aria-label="Close">esc ✕</button><div class="math-popup-body"></div>';
+				popup.querySelector(".math-popup-close")?.addEventListener("click", () => popup?.close());
+				// Clicks on the dimmed backdrop land on the dialog element itself
+				popup.addEventListener("click", (event) => {
+					if (event.target === popup) popup?.close();
+				});
+				popup.addEventListener("close", () => {
+					popup?.querySelector(".math-popup-body")?.replaceChildren();
+				});
+				document.body.append(popup);
+				return popup;
+			};
+
+			const openMathPopup = (wrapper: HTMLElement) => {
+				const svg = wrapper.querySelector<SVGSVGElement>(".typst-display");
+				if (!svg) return;
+				const popup = getMathPopup();
+				popup.querySelector(".math-popup-body")?.replaceChildren(svg.cloneNode(true));
+				popup.showModal();
+			};
+
+			document.addEventListener("keydown", (event) => {
+				if (event.key !== "Enter" && event.key !== " ") return;
+				const wrapper = (event.target as HTMLElement | null)?.closest<HTMLElement>(".typst-display-wrapper.is-shrunk");
+				if (!wrapper || wrapper !== event.target) return;
+				event.preventDefault();
+				openMathPopup(wrapper);
+			});
+
+			let mathResizeFrame = 0;
+			window.addEventListener("resize", () => {
+				cancelAnimationFrame(mathResizeFrame);
+				mathResizeFrame = requestAnimationFrame(updateMathBlocks);
+			});
+
 			// Global delegated click handler for fold toggles and badges
 			document.addEventListener("click", (event) => {
 				const target = event.target as HTMLElement | null;
 				if (!target) return;
+
+				const mathBlock = target.closest<HTMLElement>(".typst-display-wrapper.is-shrunk");
+				if (mathBlock) {
+					openMathPopup(mathBlock);
+					return;
+				}
 
 				const toggleBtn = target.closest<HTMLButtonElement>(".fold-toggle, .fold-badge");
 				if (!toggleBtn) return;
@@ -633,6 +753,7 @@ const postTransition = {
 				if (toggle) {
 					toggle.setAttribute("aria-expanded", isFolded ? "false" : "true");
 				}
+				if (!isFolded) updateMathBlocks();
 			});
 
 			window.addEventListener("hashchange", revealHashTarget);
@@ -640,6 +761,7 @@ const postTransition = {
 			const setupPostPage = () => {
 				revealHashTarget();
 				initMiniBar();
+				updateMathBlocks();
 			};
 
 			document.addEventListener("astro:page-load", setupPostPage);

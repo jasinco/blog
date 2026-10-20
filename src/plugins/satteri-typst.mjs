@@ -1,5 +1,8 @@
+import { fileURLToPath } from 'node:url';
 import { defineMdastPlugin } from 'satteri';
 import { NodeCompiler } from '@myriaddreamin/typst-ts-node-compiler';
+
+const FONTS_DIR = fileURLToPath(new URL('../assets/fonts', import.meta.url));
 
 /**
  * Cache for compiled formulas to speed up builds
@@ -11,7 +14,9 @@ let compilerInstance = null;
 
 function getCompiler() {
 	if (!compilerInstance) {
-		compilerInstance = NodeCompiler.create();
+		compilerInstance = NodeCompiler.create({
+			fontArgs: [{ fontPaths: [FONTS_DIR] }],
+		});
 	}
 	return compilerInstance;
 }
@@ -33,6 +38,15 @@ function escapeHtml(str) {
 }
 
 /**
+ * Reads the per-block scale from a fence's meta string, e.g. "```typst size=2" or "$$ size=1.5".
+ */
+function metaScale(meta) {
+	const match = meta?.match(/(?:^|\s)size=([\d.]+)(?=\s|$)/);
+	const size = match ? parseFloat(match[1]) : NaN;
+	return Number.isFinite(size) && size > 0 ? size : 1;
+}
+
+/**
  * Compiles Typst math code to SVG and computes baseline position for inline math.
  * Handles auto-defining unknown multi-letter variables and catching errors.
  */
@@ -49,11 +63,13 @@ function compileTypstMath(code, displayMode, textColor = '#ffffff', displayScale
 	for (let attempt = 0; attempt < 5; attempt++) {
 		const template = displayMode
 			? `#set page(height: auto, width: auto, margin: 0pt, fill: none)
-#set text(fill: rgb("${hexColor}"))
+#set text(font: "CMU Serif", fill: rgb("${hexColor}"))
+#show math.equation: set text(font: ("CMU Serif", "New Computer Modern Math"))
 ${preamble}
 $ ${code} $`
 			: `#set page(height: auto, width: auto, margin: 0pt, fill: none)
-#set text(fill: rgb("${hexColor}"))
+#set text(font: "CMU Serif", fill: rgb("${hexColor}"))
+#show math.equation: set text(font: ("CMU Serif", "New Computer Modern Math"))
 #let s = state("t", (:))
 #let pin(t) = context {
   let width = measure(line(length: here().position().y)).width
@@ -103,12 +119,12 @@ $pin("l1")${code}$
 			let finalHtml = rawSvg;
 			if (displayMode) {
 				const scaledWidth = ((width / defaultEm) * displayScale).toFixed(3);
-				const style = `overflow: visible; width: ${scaledWidth}em; max-width: 100%; height: auto; display: block; margin: 0; color: ${textColor};`;
+				const style = `overflow: visible; width: ${scaledWidth}em; height: auto; display: block; color: ${textColor};`;
 				finalHtml = finalHtml.replace(/<svg\b([^>]*)>/, (m, attrs) => {
 					const cleaned = attrs.replace(/\bclass="[^"]*"/, '').replace(/\bstyle="[^"]*"/, '').trim();
 					return `<svg class="typst-doc typst-display" style="${style}" ${cleaned}>`;
 				});
-				finalHtml = `<div class="typst-display-wrapper" style="overflow-x: auto; margin: 1.6em 0; padding: 0.25rem 0 0.25rem 1.5rem; text-align: left;">${finalHtml}</div>`;
+				finalHtml = `<div class="typst-display-wrapper">${finalHtml}</div>`;
 			} else {
 				const shift = height - (baselinePosition ?? height);
 				const shiftEm = (shift / defaultEm).toFixed(3);
@@ -188,7 +204,7 @@ export default function satteriTypst(options = {}) {
 					.join('\n');
 			}
 			try {
-				const html = compileTypstMath(value, true, textColor, displayScale);
+				const html = compileTypstMath(value, true, textColor, displayScale * metaScale(node.meta));
 				ctx.replaceNode(node, { type: 'html', value: html });
 			} catch (err) {
 				ctx.report({
@@ -206,7 +222,7 @@ export default function satteriTypst(options = {}) {
 			if (node.lang === 'typst' || node.lang === 'math') {
 				let value = (node.value || '').trim();
 				try {
-					const html = compileTypstMath(value, true, textColor, displayScale);
+					const html = compileTypstMath(value, true, textColor, displayScale * metaScale(node.meta));
 					ctx.replaceNode(node, { type: 'html', value: html });
 				} catch (err) {
 					ctx.report({

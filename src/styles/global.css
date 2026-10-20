@@ -1,5 +1,85 @@
 @import "tailwindcss";
 
+@font-face {
+	font-family: "JuliaMono";
+	src: url("https://cdn.jsdelivr.net/gh/cormullion/juliamono/webfonts/JuliaMono-Light.woff2") format("woff2");
+	font-weight: 300;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: "JuliaMono";
+	src: url("https://cdn.jsdelivr.net/gh/cormullion/juliamono/webfonts/JuliaMono-Regular.woff2") format("woff2");
+	font-weight: 400;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: "JuliaMono";
+	src: url("https://cdn.jsdelivr.net/gh/cormullion/juliamono/webfonts/JuliaMono-Medium.woff2") format("woff2");
+	font-weight: 500;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: "JuliaMono";
+	src: url("https://cdn.jsdelivr.net/gh/cormullion/juliamono/webfonts/JuliaMono-Bold.woff2") format("woff2");
+	font-weight: 600 700;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: "Ioskeley Mono";
+	src: url("/fonts/ioskeley/IoskeleyMono-Regular.woff2") format("woff2");
+	font-weight: 400;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: "Ioskeley Mono";
+	src: url("/fonts/ioskeley/IoskeleyMono-Italic.woff2") format("woff2");
+	font-weight: 400;
+	font-style: italic;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: "Ioskeley Mono";
+	src: url("/fonts/ioskeley/IoskeleyMono-Medium.woff2") format("woff2");
+	font-weight: 500;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: "Ioskeley Mono";
+	src: url("/fonts/ioskeley/IoskeleyMono-SemiBold.woff2") format("woff2");
+	font-weight: 600;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: "Ioskeley Mono";
+	src: url("/fonts/ioskeley/IoskeleyMono-Bold.woff2") format("woff2");
+	font-weight: 700;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: "Ioskeley Mono";
+	src: url("/fonts/ioskeley/IoskeleyMono-BoldItalic.woff2") format("woff2");
+	font-weight: 700;
+	font-style: italic;
+	font-display: swap;
+}
+
 :root {
 	--canvas: #111311;
 	--surface: #1c201d;
@@ -10,6 +90,15 @@
 	--green-ink: #b8d2ad;
 	--serif: "Iowan Old Style", "Baskerville", "Times New Roman", serif;
 	--sans: "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
+	--mono: "JuliaMono", "SFMono-Regular", "Cascadia Mono", Menlo, monospace;
+	--code: "Ioskeley Mono", "SFMono-Regular", "Cascadia Mono", Menlo, monospace;
+}
+
+code,
+pre,
+kbd,
+samp {
+	font-family: var(--code);
 }
 
 * {
@@ -110,7 +199,7 @@ h1 {
 	align-items: baseline;
 	gap: .38em;
 	color: var(--green-ink);
-	font-family: "SFMono-Regular", "Cascadia Mono", Menlo, monospace;
+	font-family: var(--mono);
 	font-size: clamp(1.18rem, 2.9vw, 2.2rem);
 	font-weight: 500;
 	letter-spacing: -.055em;
@@ -164,7 +253,7 @@ h1 {
 	border: 1px solid var(--line);
 	border-radius: 2px;
 	color: var(--soft-ink);
-	font-family: "SFMono-Regular", "Cascadia Mono", Menlo, monospace;
+	font-family: var(--mono);
 	font-size: .74rem;
 	line-height: 1.3;
 	cursor: pointer;
@@ -290,7 +379,7 @@ h1 {
 	border: 1px solid var(--line);
 	border-radius: 2px;
 	color: var(--soft-ink);
-	font-family: "SFMono-Regular", "Cascadia Mono", Menlo, monospace;
+	font-family: var(--mono);
 	font-size: .68rem;
 	line-height: 1.3;
 	cursor: pointer;
@@ -424,26 +513,134 @@ button:focus-visible,
 }
 
 .typst-display-wrapper {
-	display: flex;
-	justify-content: center;
-	align-items: center;
+	position: relative;
+	display: block;
 	margin: 1.8rem 0;
-	max-width: 62ch;
-	overflow-x: auto;
-	overflow-y: hidden;
-	padding: 0.6rem 0;
+	max-width: 100%;
+	overflow: hidden;
+	padding: 0.6rem 0 0.6rem 1.5rem;
 }
 
 .typst-display {
 	display: block;
-	margin: 0 auto;
+	margin: 0;
 	max-width: 100%;
 	height: auto;
+	/* glyph size = font-size × displayScale (1.4 in satteri-typst.mjs) → ~1.12× body text */
+	font-size: calc(1.03rem * 1.12 / 1.4);
+}
+
+/* Phones: center display math in the column */
+@media (max-width: 600px) {
+	.typst-display-wrapper {
+		padding-left: 0;
+	}
+
+	.typst-display {
+		margin-inline: auto;
+	}
+}
+
+/* Equation wider than the column: shown fitted, click/tap to view at full size */
+.typst-display-wrapper.is-shrunk {
+	cursor: zoom-in;
+	padding-bottom: 1.3rem;
+	border-radius: 4px;
+	transition: background-color .2s ease;
+}
+
+.typst-display-wrapper.is-shrunk:hover,
+.typst-display-wrapper.is-shrunk:focus-visible {
+	background: var(--green-wash);
+}
+
+.typst-display-wrapper.is-shrunk::after {
+	content: "⤢";
+	position: absolute;
+	bottom: 4px;
+	right: 6px;
+	color: var(--soft-ink);
+	font-family: var(--mono);
+	font-size: .72rem;
+	line-height: 1;
+	opacity: .7;
+	pointer-events: none;
+}
+
+/* Popup showing a shrunk equation at full size */
+.math-popup {
+	max-width: min(94vw, 1200px);
+	max-height: 88vh;
+	margin: auto;
+	padding: 0;
+	border: 1px solid var(--line);
+	border-radius: 6px;
+	background: var(--surface);
+	color: var(--ink);
+	box-shadow: 0 24px 80px rgba(0, 0, 0, .55);
+	overflow: hidden;
+}
+
+.math-popup[open] {
+	display: flex;
+	flex-direction: column;
+	animation: math-popup-in .18s ease-out;
+}
+
+.math-popup::backdrop {
+	background: rgba(8, 10, 8, .72);
+	backdrop-filter: blur(3px);
+	animation: math-popup-fade .18s ease-out;
+}
+
+.math-popup-close {
+	align-self: flex-end;
+	margin: 8px 8px 0 0;
+	padding: 2px 8px;
+	border: 1px solid var(--line);
+	border-radius: 2px;
+	background: transparent;
+	color: var(--soft-ink);
+	font-family: var(--mono);
+	font-size: .78rem;
+	line-height: 1.4;
+	cursor: pointer;
+}
+
+.math-popup-close:hover {
+	color: var(--ink);
+	border-color: var(--soft-ink);
+}
+
+.math-popup-body {
+	padding: 8px clamp(16px, 4vw, 40px) clamp(20px, 4vw, 36px);
+	overflow: auto;
+	overscroll-behavior: contain;
+	scrollbar-width: thin;
+	scrollbar-color: rgba(240, 240, 232, .16) transparent;
+}
+
+.math-popup-body .typst-display {
+	max-width: none;
+	margin: 0 auto;
+}
+
+@keyframes math-popup-in {
+	from {
+		opacity: 0;
+		transform: scale(.96);
+	}
+}
+
+@keyframes math-popup-fade {
+	from {
+		opacity: 0;
+	}
 }
 
 .typst-error {
 	color: #ef4444;
-	font-family: monospace;
+	font-family: var(--mono);
 	background: rgba(239, 68, 68, 0.1);
 	padding: 0.15em 0.4em;
 	border-radius: 4px;
