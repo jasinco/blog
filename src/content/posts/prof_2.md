@@ -136,10 +136,9 @@ def find_in_grp(tgt:Tuple[int,int], garr: List[List[int]])->Tuple[int,int]:
             t2 = idx
     return (t1,t2)
 
-
 # ST is state transfer
 def simplify(S: List[int], O:List[Tuple[int,int]], ST:List[Tuple[int,int]]):
-    
+
     # dict[output, state_indexes]
     G:Dict[Tuple[int,int], List[int]] = {}
 
@@ -159,10 +158,8 @@ def simplify(S: List[int], O:List[Tuple[int,int]], ST:List[Tuple[int,int]]):
             split_inner:Dict[Tuple[int,int], List[int]] = {}
             for elem in grp:
                 split_inner.setdefault(find_in_grp(ST[elem], GArr),[]).append(elem)
-
+            # append to new array
             GArr_new.extend(split_inner.values())
-
-
     print(GArr)
     return GArr
 

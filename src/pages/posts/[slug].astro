@@ -516,6 +516,24 @@ const postTransition = {
 				line-height: 1.6;
 			}
 
+			/* Line numbers (CSS counters, so they're never part of the copied text) */
+			.post-sheet-body :global(.code-block > pre > code) {
+				counter-reset: code-line;
+			}
+
+			.post-sheet-body :global(.code-block .line)::before {
+				counter-increment: code-line;
+				content: counter(code-line);
+				display: inline-block;
+				width: 2.5ch;
+				margin-right: 1.4em;
+				text-align: right;
+				color: var(--soft-ink);
+				opacity: .4;
+				user-select: none;
+				-webkit-user-select: none;
+			}
+
 			.post-sheet-body :global(.code-copy) {
 				position: absolute;
 				top: 8px;
