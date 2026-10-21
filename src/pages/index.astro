@@ -33,6 +33,8 @@ const allTags = [...tagCounts.entries()]
 	.map(([tag, count]) => ({ tag, count }));
 const { url, site } = Astro;
 const openGraphImageUrl = getImagePath({ url, site });
+const pageTitle = "一人の言葉 — Jasinco's Bewilderments & Personal Notes";
+const pageDescription = "A personal collection of bewilderments, essays, and notes on programming, mathematics, and things not quite figured out.";
 ---
 
 <html lang="en">
@@ -40,15 +42,25 @@ const openGraphImageUrl = getImagePath({ url, site });
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width" />
 		<meta name="generator" content={Astro.generator} />
-		<meta name="description" content="A personal collection of bewilderments and notes." />
+		<meta name="description" content={pageDescription} />
 
-		<meta property="og:title" content="一人の言葉" />
-		<meta property="og:description" content="A personal collection of bewilderments and notes." />
+		<meta property="og:title" content={pageTitle} />
+		<meta property="og:description" content={pageDescription} />
 		<meta property="og:type" content="website" />
 		<meta property="og:url" content={url.href} />
 		<meta property="og:image" content={openGraphImageUrl} />
+		<meta property="og:image:width" content="1200" />
+		<meta property="og:image:height" content="630" />
+		<meta property="og:image:alt" content={pageTitle} />
+
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta name="twitter:title" content={pageTitle} />
+		<meta name="twitter:description" content={pageDescription} />
+		<meta name="twitter:image" content={openGraphImageUrl} />
+		<meta name="twitter:image:alt" content={pageTitle} />
+
 		<ClientRouter />
-		<title>一人の言葉 — My Bewilderments</title>
+		<title>{pageTitle}</title>
 	</head>
 	<body>
 		<header class="site-bar" transition:persist>
