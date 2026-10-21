@@ -500,6 +500,66 @@ const postTransition = {
 				border-radius: 2px;
 			}
 
+			/* Code blocks: bordered, with a copy button in the top-right corner */
+			.post-sheet-body :global(.code-block) {
+				position: relative;
+				margin: 1.6em 0;
+				border: 1px solid var(--line);
+				border-radius: 4px;
+				overflow: hidden;
+			}
+
+			.post-sheet-body :global(.code-block > pre) {
+				margin: 0;
+				padding: 16px 18px;
+				font-size: .86rem;
+				line-height: 1.6;
+			}
+
+			.post-sheet-body :global(.code-copy) {
+				position: absolute;
+				top: 8px;
+				right: 8px;
+				display: inline-flex;
+				align-items: center;
+				gap: 5px;
+				padding: 3px 8px;
+				border: 1px solid var(--line);
+				border-radius: 3px;
+				background: color-mix(in srgb, var(--surface) 85%, transparent);
+				color: var(--soft-ink);
+				font-family: var(--mono);
+				font-size: .7rem;
+				line-height: 1.3;
+				cursor: pointer;
+				opacity: .55;
+				-webkit-backdrop-filter: blur(4px);
+				backdrop-filter: blur(4px);
+				transition: opacity .15s ease, color .15s ease, border-color .15s ease, background-color .15s ease;
+			}
+
+			.post-sheet-body :global(.code-block:hover .code-copy),
+			.post-sheet-body :global(.code-copy:focus-visible) {
+				opacity: 1;
+			}
+
+			.post-sheet-body :global(.code-copy:hover) {
+				color: var(--green-ink);
+				border-color: var(--green-ink);
+				background: var(--green-wash);
+			}
+
+			.post-sheet-body :global(.code-copy:focus-visible) {
+				outline: 2px solid var(--green-ink);
+				outline-offset: 1px;
+			}
+
+			.post-sheet-body :global(.code-copy.is-copied) {
+				opacity: 1;
+				color: var(--green-ink);
+				border-color: var(--green-ink);
+			}
+
 			/* Links: underlined, with a trailing ↗ */
 			.post-sheet-body :global(a[href]) {
 				color: var(--green-ink);
@@ -532,6 +592,7 @@ const postTransition = {
 			/* Scrollbars: thin pill thumb, no track, brightens to green on hover */
 			.post-sheet,
 			.post-sheet-body :global(.table-wrapper),
+			.post-sheet-body :global(.code-block > pre),
 			.post-sheet-body :global(.typst-display-wrapper) {
 				--scroll-thumb: rgba(240, 240, 232, .16);
 				--scroll-thumb-hover: color-mix(in srgb, var(--green-ink) 60%, transparent);
@@ -540,6 +601,7 @@ const postTransition = {
 			@supports not selector(::-webkit-scrollbar) {
 				.post-sheet,
 				.post-sheet-body :global(.table-wrapper),
+				.post-sheet-body :global(.code-block > pre),
 				.post-sheet-body :global(.typst-display-wrapper) {
 					scrollbar-width: thin;
 					scrollbar-color: var(--scroll-thumb) transparent;
@@ -551,18 +613,21 @@ const postTransition = {
 			}
 
 			.post-sheet-body :global(.table-wrapper)::-webkit-scrollbar,
+			.post-sheet-body :global(.code-block > pre)::-webkit-scrollbar,
 			.post-sheet-body :global(.typst-display-wrapper)::-webkit-scrollbar {
 				height: 8px;
 			}
 
 			.post-sheet::-webkit-scrollbar-track,
 			.post-sheet-body :global(.table-wrapper)::-webkit-scrollbar-track,
+			.post-sheet-body :global(.code-block > pre)::-webkit-scrollbar-track,
 			.post-sheet-body :global(.typst-display-wrapper)::-webkit-scrollbar-track {
 				background: transparent;
 			}
 
 			.post-sheet::-webkit-scrollbar-button,
 			.post-sheet-body :global(.table-wrapper)::-webkit-scrollbar-button,
+			.post-sheet-body :global(.code-block > pre)::-webkit-scrollbar-button,
 			.post-sheet-body :global(.typst-display-wrapper)::-webkit-scrollbar-button {
 				display: none;
 			}
@@ -573,6 +638,7 @@ const postTransition = {
 
 			.post-sheet::-webkit-scrollbar-thumb,
 			.post-sheet-body :global(.table-wrapper)::-webkit-scrollbar-thumb,
+			.post-sheet-body :global(.code-block > pre)::-webkit-scrollbar-thumb,
 			.post-sheet-body :global(.typst-display-wrapper)::-webkit-scrollbar-thumb {
 				background: var(--scroll-thumb);
 				background-clip: padding-box;
@@ -581,6 +647,7 @@ const postTransition = {
 			}
 
 			.post-sheet-body :global(.table-wrapper)::-webkit-scrollbar-thumb,
+			.post-sheet-body :global(.code-block > pre)::-webkit-scrollbar-thumb,
 			.post-sheet-body :global(.typst-display-wrapper)::-webkit-scrollbar-thumb {
 				border-width: 2px;
 			}
@@ -588,7 +655,9 @@ const postTransition = {
 			.post-sheet::-webkit-scrollbar-thumb:hover,
 			.post-sheet::-webkit-scrollbar-thumb:active,
 			.post-sheet-body :global(.table-wrapper)::-webkit-scrollbar-thumb:hover,
+			.post-sheet-body :global(.code-block > pre)::-webkit-scrollbar-thumb:hover,
 			.post-sheet-body :global(.table-wrapper)::-webkit-scrollbar-thumb:active,
+			.post-sheet-body :global(.code-block > pre)::-webkit-scrollbar-thumb:active,
 			.post-sheet-body :global(.typst-display-wrapper)::-webkit-scrollbar-thumb:hover,
 			.post-sheet-body :global(.typst-display-wrapper)::-webkit-scrollbar-thumb:active {
 				background: var(--scroll-thumb-hover);
@@ -760,10 +829,39 @@ const postTransition = {
 				mathResizeFrame = requestAnimationFrame(updateMathBlocks);
 			});
 
-			// Global delegated click handler for fold toggles and badges
+			const copyResetTimers = new WeakMap<HTMLButtonElement, number>();
+
+			const copyCode = async (button: HTMLButtonElement) => {
+				const code = button.closest(".code-block")?.querySelector("pre code");
+				const label = button.querySelector(".code-copy-label");
+				if (!code || !label) return;
+
+				let result = "copied";
+				try {
+					await navigator.clipboard.writeText(code.textContent ?? "");
+				} catch {
+					result = "failed";
+				}
+
+				clearTimeout(copyResetTimers.get(button));
+				label.textContent = result;
+				button.classList.toggle("is-copied", result === "copied");
+				copyResetTimers.set(button, window.setTimeout(() => {
+					label.textContent = "copy";
+					button.classList.remove("is-copied");
+				}, 1600));
+			};
+
+			// Global delegated click handler for code copy, math popups, fold toggles and badges
 			document.addEventListener("click", (event) => {
 				const target = event.target as HTMLElement | null;
 				if (!target) return;
+
+				const copyBtn = target.closest<HTMLButtonElement>(".code-copy");
+				if (copyBtn) {
+					copyCode(copyBtn);
+					return;
+				}
 
 				const mathBlock = target.closest<HTMLElement>(".typst-display-wrapper.is-shrunk");
 				if (mathBlock) {

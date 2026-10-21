@@ -31,6 +31,54 @@ function createChevronSvgHast() {
 	};
 }
 
+function createCopyButtonHast() {
+	return {
+		type: 'element',
+		tagName: 'button',
+		properties: {
+			type: 'button',
+			className: ['code-copy'],
+			'aria-label': 'Copy code',
+		},
+		children: [
+			{
+				type: 'element',
+				tagName: 'svg',
+				properties: {
+					viewBox: '0 0 16 16',
+					width: '13',
+					height: '13',
+					fill: 'none',
+					stroke: 'currentColor',
+					'stroke-width': '1.5',
+					'stroke-linejoin': 'round',
+					'aria-hidden': 'true',
+				},
+				children: [
+					{
+						type: 'element',
+						tagName: 'rect',
+						properties: { x: '5.5', y: '5.5', width: '8', height: '8', rx: '1.5' },
+						children: [],
+					},
+					{
+						type: 'element',
+						tagName: 'path',
+						properties: { d: 'M10.5 5.5V3.5a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2' },
+						children: [],
+					},
+				],
+			},
+			{
+				type: 'element',
+				tagName: 'span',
+				properties: { className: ['code-copy-label'] },
+				children: [{ type: 'text', value: 'copy' }],
+			},
+		],
+	};
+}
+
 function hasMeaningfulChildren(children) {
 	return children.some(
 		(child) => !(child.type === 'text' && (!child.value || child.value.trim() === ''))
@@ -39,7 +87,8 @@ function hasMeaningfulChildren(children) {
 
 /**
  * Compile-time Sätteri HAST plugin that:
- * 1. Wraps markdown `<table>` elements in an accessible scrollable `.table-wrapper`.
+ * 1. Wraps markdown `<table>` elements in an accessible scrollable `.table-wrapper`,
+ *    and code blocks in a bordered `.code-block` with a copy button.
  * 2. Groups headings (`<h1>`–`<h6>`) and their following content into hierarchical
  *    collapsible `.fold-section` containers so zero runtime DOM restructuring is needed.
  */
@@ -47,8 +96,19 @@ export default function satteriPostLayout() {
 	return defineHastPlugin({
 		name: 'satteri-post-layout',
 		element: {
-			filter: ['table'],
+			filter: ['table', 'pre'],
 			visit(node, ctx) {
+				if (node.tagName === 'pre') {
+					const classes = node.properties?.className || [];
+					if (classes.includes('mermaid-error')) return;
+					ctx.wrapNode(node, {
+						type: 'element',
+						tagName: 'div',
+						properties: { className: ['code-block'] },
+						children: [createCopyButtonHast()],
+					});
+					return;
+				}
 				ctx.wrapNode(node, {
 					type: 'element',
 					tagName: 'div',

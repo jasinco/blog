@@ -122,6 +122,7 @@ struct f{
 
 # FSM Simplify (米利機 / 摩爾機 化簡)
 [reference](https://zuiyu.me/2025/07/09/status-simple/)
+[convert to registers input](https://mil.ufl.edu/3701/classes/joel/16%20Lecture.pdf)
 ```python
 from typing import  Dict, List, Tuple
 
