@@ -7,7 +7,8 @@ tags:
   - c
 ---
 # C
-[C Basic Data Type Sizing](https://en.wikipedia.org/wiki/64-bit_computing#64-bit_data_models)
+[C Basic Data Type Sizing](https://en.wikipedia.org/wiki/64-bit_computing#64-bit_data_models)  
+[C Array function parameter](https://blog.danielchen.cc/2020/05/30/C-Array-Function-Parameter/)  
 ## Struct Padding
 [reference](https://en.wikipedia.org/wiki/Data_structure_alignment#Typical_alignment_of_C_structs_on_x86)
 1. 找最大的類型並且設n = 最大型別大小 
