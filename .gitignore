@@ -22,3 +22,9 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
+
+# wrangler & agent skills
+.wrangler/
+.agents/
+skills/
+skills-lock.json

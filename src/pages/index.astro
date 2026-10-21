@@ -110,47 +110,214 @@ const openGraphImageUrl = getImagePath({ url, site });
 
 		<script>
 			import { animate } from "animejs";
+			import {
+				AdditiveBlending,
+				BufferAttribute,
+				BufferGeometry,
+				CanvasTexture,
+				Color,
+				LinearFilter,
+				PerspectiveCamera,
+				Points,
+				Scene,
+				ShaderMaterial,
+				WebGLRenderer,
+			} from "three";
 
-			// Dot-tiled background rippling with travelling waves (canvas 2D, ~30fps)
-			const initDotWaves = () => {
-				const win = window as Window & { __dotWavesStop?: () => void };
-				win.__dotWavesStop?.();
-				win.__dotWavesStop = undefined;
+			// 3D cmatrix rain: glyph columns at varying depths, falling cell by cell (three.js, 28fps)
+			const initMatrix3D = () => {
+				const win = window as Window & { __matrix3DStop?: () => void };
+				win.__matrix3DStop?.();
+				win.__matrix3DStop = undefined;
 
 				const canvas = document.querySelector<HTMLCanvasElement>(".animation-bg");
-				const ctx = canvas?.getContext("2d");
-				if (!canvas || !ctx) return;
+				if (!canvas) return;
 
 				const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-				const spacing = 30;
-				const amplitude = 5;
-				const dotRadius = 1.8;
-				const meshAlpha = 0.18;
+				const streamCount = 280;
+				const trailLength = 22; // glyphs per stream
+				const cell = 0.9; // world-space glyph height
+				const depthRange = [8, 60]; // distance of streams from the camera
+				const speedRange = [5, 14]; // cells per second
+				const flickerRate = 6; // glyph changes per second
+				const fov = 50;
 				const frameInterval = 1000 / 28; // cap at 28fps
-				const dotColor = getComputedStyle(document.documentElement).getPropertyValue("--green-ink").trim() || "#b8d2ad";
+				const css = getComputedStyle(document.documentElement);
+				const trailColor = css.getPropertyValue("--green-ink").trim() || "#b8d2ad";
+				const headColor = css.getPropertyValue("--ink").trim() || "#f0f0e8";
 
-				let width = 0;
-				let height = 0;
+				let renderer: WebGLRenderer;
+				try {
+					renderer = new WebGLRenderer({ canvas, alpha: true, antialias: false });
+				} catch {
+					return; // No WebGL: leave the background empty
+				}
+				renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+
+				const scene = new Scene();
+				const camera = new PerspectiveCamera(fov, 1, 0.1, 200);
+				camera.position.set(0, 0, 0);
+
+				// Glyph atlas: half-width katakana + digits, mirrored like the film
+				const glyphs = "ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ0123456789:.=*+-<>¦|";
+				const atlasCols = 8;
+				const atlasCell = 64;
+				const atlasCanvas = document.createElement("canvas");
+				atlasCanvas.width = atlasCanvas.height = atlasCols * atlasCell;
+				const atlasCtx = atlasCanvas.getContext("2d")!;
+				const renderAtlas = () => {
+					atlasCtx.clearRect(0, 0, atlasCanvas.width, atlasCanvas.height);
+					atlasCtx.fillStyle = "#fff";
+					atlasCtx.font = `${atlasCell * 0.78}px "Ioskeley Mono", "Noto Sans JP", "Hiragino Sans", monospace`;
+					atlasCtx.textAlign = "center";
+					atlasCtx.textBaseline = "middle";
+					for (let g = 0; g < atlasCols * atlasCols; g++) {
+						const cx = (g % atlasCols) * atlasCell + atlasCell / 2;
+						const cy = Math.floor(g / atlasCols) * atlasCell + atlasCell / 2;
+						atlasCtx.save();
+						atlasCtx.translate(cx, cy);
+						atlasCtx.scale(-1, 1);
+						atlasCtx.fillText(glyphs[g % glyphs.length], 0, 0);
+						atlasCtx.restore();
+					}
+				};
+				renderAtlas();
+				const atlas = new CanvasTexture(atlasCanvas);
+				atlas.minFilter = LinearFilter;
+				atlas.generateMipmaps = false;
+
+				let isDisposed = false;
+				if (document.fonts) {
+					document.fonts.ready.then(() => {
+						if (isDisposed) return;
+						renderAtlas();
+						atlas.needsUpdate = true;
+					});
+				}
+
+				// One point per glyph; each stream's layout lives in per-vertex attributes
+				const total = streamCount * trailLength;
+				const aStream = new Float32Array(total * 4); // x, z, top y, fall range
+				const aMotion = new Float32Array(total * 4); // speed, phase, trail index, seed
+				const halfTan = Math.tan(((fov / 2) * Math.PI) / 180);
+				for (let s = 0; s < streamCount; s++) {
+					const depth = depthRange[0] + Math.random() * (depthRange[1] - depthRange[0]);
+					const halfH = depth * halfTan;
+					const x = (Math.random() * 2 - 1) * halfH * 2.2; // wide enough for ultrawide screens
+					const top = halfH + cell * 2;
+					const range = top * 2 + trailLength * cell;
+					const speed = speedRange[0] + Math.random() * (speedRange[1] - speedRange[0]);
+					const phase = Math.random() * 1000;
+					for (let t = 0; t < trailLength; t++) {
+						const i = (s * trailLength + t) * 4;
+						aStream.set([x, -depth, top, range], i);
+						aMotion.set([speed, phase, t, s * 7.31], i);
+					}
+				}
+				const geometry = new BufferGeometry();
+				geometry.setAttribute("position", new BufferAttribute(new Float32Array(total * 3), 3));
+				geometry.setAttribute("aStream", new BufferAttribute(aStream, 4));
+				geometry.setAttribute("aMotion", new BufferAttribute(aMotion, 4));
+
+				const material = new ShaderMaterial({
+					uniforms: {
+						uTime: { value: 0 },
+						uAtlas: { value: atlas },
+						uTrail: { value: new Color(trailColor) },
+						uHead: { value: new Color(headColor) },
+						uCell: { value: cell },
+						uTrailLength: { value: trailLength },
+						uFlicker: { value: flickerRate },
+						uViewportH: { value: 1 },
+						uHalfTan: { value: halfTan },
+						uDepthFar: { value: depthRange[1] },
+					},
+					transparent: true,
+					depthWrite: false,
+					blending: AdditiveBlending,
+					vertexShader: /* glsl */ `
+						attribute vec4 aStream;
+						attribute vec4 aMotion;
+						uniform float uTime;
+						uniform float uCell;
+						uniform float uTrailLength;
+						uniform float uFlicker;
+						uniform float uViewportH;
+						uniform float uHalfTan;
+						uniform float uDepthFar;
+						varying float vGlyph;
+						varying float vHead;
+						varying float vAlpha;
+
+						float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+
+						void main() {
+							float speed = aMotion.x;
+							float trail = aMotion.z;
+							float seed = aMotion.w;
+							// The head advances whole cells, like a terminal redraw
+							float headCell = floor(uTime * speed + aMotion.y);
+							float cellsInRange = max(1.0, floor(aStream.w / uCell));
+							float row = mod(mod(headCell - trail, cellsInRange) + cellsInRange, cellsInRange);
+							float y = aStream.z - row * uCell;
+
+							vec4 mv = modelViewMatrix * vec4(aStream.x, y, aStream.y, 1.0);
+							gl_Position = projectionMatrix * mv;
+							gl_PointSize = uCell * uViewportH / (2.0 * uHalfTan * max(0.1, -mv.z));
+
+							// Glyph is fixed per screen cell, but re-rolls a few times a second
+							float slot = mod(mod(headCell - trail, cellsInRange) + cellsInRange, cellsInRange);
+							float change = floor(uTime * uFlicker * (0.3 + hash(vec2(seed, slot))));
+							vGlyph = clamp(floor(hash(vec2(seed + slot, change)) * 64.0), 0.0, 63.0);
+							vHead = trail < 0.5 ? 1.0 : 0.0;
+							float fade = 1.0 - trail / uTrailLength;
+							float depthFade = smoothstep(uDepthFar, uDepthFar * 0.25, -mv.z);
+							vAlpha = fade * fade * depthFade;
+						}
+					`,
+					fragmentShader: /* glsl */ `
+						uniform sampler2D uAtlas;
+						uniform vec3 uTrail;
+						uniform vec3 uHead;
+						varying float vGlyph;
+						varying float vHead;
+						varying float vAlpha;
+
+						void main() {
+							vec2 cellXY = vec2(mod(vGlyph, 8.0), floor(vGlyph / 8.0));
+							vec2 uv = vec2((cellXY.x + gl_PointCoord.x) / 8.0, 1.0 - (cellXY.y + gl_PointCoord.y) / 8.0);
+							float ink = texture2D(uAtlas, uv).a;
+							if (ink < 0.05) discard;
+							vec3 color = mix(uTrail, uHead, vHead);
+							gl_FragColor = vec4(color, ink * max(vAlpha, vHead));
+						}
+					`,
+				});
+
+				const points = new Points(geometry, material);
+				points.frustumCulled = false;
+				scene.add(points);
+
 				let frame = 0;
-				let lastTick = 0;
+				let lastTick = performance.now();
 
 				const draw = (time: number) => {
-					ctx.clearRect(0, 0, width, height);
-					ctx.fillStyle = dotColor;
-					ctx.strokeStyle = dotColor;
-
-					ctx.fill();
-					ctx.globalAlpha = 1;
+					const t = time / 1000;
+					material.uniforms.uTime.value = t;
+					// Slow drift so the depth reads as 3D
+					camera.position.set(Math.sin(t * 0.07) * 2.5, Math.sin(t * 0.05) * 1.2, 0);
+					camera.lookAt(Math.sin(t * 0.04) * 1.5, 0, -30);
+					renderer.render(scene, camera);
 				};
 
 				const resize = () => {
 					const rect = canvas.getBoundingClientRect();
-					const dpr = window.devicePixelRatio || 1;
-					width = Math.max(1, Math.floor(rect.width));
-					height = Math.max(1, Math.floor(rect.height));
-					canvas.width = Math.floor(width * dpr);
-					canvas.height = Math.floor(height * dpr);
-					ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+					const width = Math.max(1, Math.floor(rect.width));
+					const height = Math.max(1, Math.floor(rect.height));
+					renderer.setSize(width, height, false);
+					camera.aspect = width / height;
+					camera.updateProjectionMatrix();
+					material.uniforms.uViewportH.value = height * renderer.getPixelRatio();
 					draw(lastTick);
 				};
 
@@ -166,12 +333,21 @@ const openGraphImageUrl = getImagePath({ url, site });
 				resize();
 				const observer = new ResizeObserver(resize);
 				observer.observe(canvas);
-				// Reduced motion: keep the static dot field, skip the animation loop
-				if (!reduceMotion) frame = requestAnimationFrame(tick);
+				// Reduced motion: one static frame of rain, no animation loop
+				if (!reduceMotion) {
+					frame = requestAnimationFrame(tick);
+				} else {
+					draw(12000);
+				}
 
-				win.__dotWavesStop = () => {
+				win.__matrix3DStop = () => {
+					isDisposed = true;
 					cancelAnimationFrame(frame);
 					observer.disconnect();
+					geometry.dispose();
+					material.dispose();
+					atlas.dispose();
+					renderer.dispose();
 				};
 			};
 
@@ -205,7 +381,7 @@ const openGraphImageUrl = getImagePath({ url, site });
 
 				if (!readingBox || !boxContent) return;
 
-				initDotWaves();
+				initMatrix3D();
 
 				const startBoxAnimation = () => {
 					readingBox.style.transformOrigin = "top center";
@@ -446,9 +622,10 @@ const openGraphImageUrl = getImagePath({ url, site });
 				});
 			};
 
-			initLandingPage();
+			document.addEventListener("astro:before-swap", () => {
+				(window as Window & { __matrix3DStop?: () => void }).__matrix3DStop?.();
+			});
 			document.addEventListener("astro:page-load", initLandingPage);
-			document.addEventListener("astro:after-swap", initLandingPage);
 			window.addEventListener("pageshow", (event) => {
 				if (event.persisted) initLandingPage();
 			});

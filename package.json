@@ -29,10 +29,15 @@
     "hast-util-from-html-isomorphic": "^2.0.0",
     "hast-util-to-text": "^4.0.2",
     "pele": "^1.6.0",
+    "react": "19.3.1",
     "remark-math": "^6.0.0",
     "satteri": "^0.10.5",
     "tailwindcss": "^4.3.3",
+    "three": "^0.186.1",
     "unist-util-visit-parents": "^6.0.2",
     "wrangler": "^4.151.1"
+  },
+  "devDependencies": {
+    "@types/three": "^0.186.0"
   }
 }

@@ -9,7 +9,8 @@ import satteriPostLayout from './src/plugins/satteri-post-layout.mjs';
 import cloudflare from '@astrojs/cloudflare';
 
 import * as fs from "node:fs";
-import takumi, { presets } from 'astro-takumi';
+import takumi from 'astro-takumi';
+import { renderOgImage } from './src/og/render.mjs';
 
 // https://astro.build/config
 export default defineConfig({
@@ -44,11 +45,14 @@ export default defineConfig({
 			options: {
 				fonts: [
 					fs.readFileSync('./public/fonts/ioskeley/IoskeleyMono-Regular.woff2'),
+					fs.readFileSync('./public/fonts/ioskeley/IoskeleyMono-SemiBold.woff2'),
+					fs.readFileSync('./public/fonts/ioskeley/IoskeleyMono-Bold.woff2'),
 					// Japanese fallback for titles like 一人の言葉 (Ioskeley has no CJK glyphs)
 					fs.readFileSync('./node_modules/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-400-normal.woff2'),
+					fs.readFileSync('./node_modules/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-700-normal.woff2'),
 				],
 			},
-			render: presets.blackAndWhite,
+			render: renderOgImage,
 		}),
 	],
 });
