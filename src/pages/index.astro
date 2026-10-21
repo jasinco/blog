@@ -2,6 +2,8 @@
 import { ClientRouter } from "astro:transitions";
 import { getCollection } from "astro:content";
 import "../styles/global.css";
+// Deep import: the package root pulls in the native renderer, which the Cloudflare build can't bundle
+import { getImagePath } from "astro-takumi/dist/util.js";
 
 const dateFormatter = new Intl.DateTimeFormat("en-GB", {
 	day: "2-digit",
@@ -29,6 +31,8 @@ posts.forEach((post) => {
 const allTags = [...tagCounts.entries()]
 	.sort(([a], [b]) => a.localeCompare(b))
 	.map(([tag, count]) => ({ tag, count }));
+const { url, site } = Astro;
+const openGraphImageUrl = getImagePath({ url, site });
 ---
 
 <html lang="en">
@@ -37,6 +41,12 @@ const allTags = [...tagCounts.entries()]
 		<meta name="viewport" content="width=device-width" />
 		<meta name="generator" content={Astro.generator} />
 		<meta name="description" content="A personal collection of bewilderments and notes." />
+
+		<meta property="og:title" content="一人の言葉" />
+		<meta property="og:description" content="A personal collection of bewilderments and notes." />
+		<meta property="og:type" content="website" />
+		<meta property="og:url" content={url.href} />
+		<meta property="og:image" content={openGraphImageUrl} />
 		<ClientRouter />
 		<title>一人の言葉 — My Bewilderments</title>
 	</head>
@@ -101,74 +111,65 @@ const allTags = [...tagCounts.entries()]
 		<script>
 			import { animate } from "animejs";
 
-			// cmatrix-style digital rain behind the reading box (throttled canvas 2D, ~18fps)
-			const initMatrixRain = () => {
-				const win = window as Window & { __matrixStop?: () => void };
-				win.__matrixStop?.();
-				win.__matrixStop = undefined;
+			// Dot-tiled background rippling with travelling waves (canvas 2D, ~30fps)
+			const initDotWaves = () => {
+				const win = window as Window & { __dotWavesStop?: () => void };
+				win.__dotWavesStop?.();
+				win.__dotWavesStop = undefined;
 
 				const canvas = document.querySelector<HTMLCanvasElement>(".animation-bg");
 				const ctx = canvas?.getContext("2d");
 				if (!canvas || !ctx) return;
-				if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
-				const glyphs = "ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ0123456789:.=*+-<>¦".split("");
-				const fontSize = 16;
-				const frameInterval = 55;
-				const rootStyle = getComputedStyle(document.documentElement);
-				const background = rootStyle.getPropertyValue("--canvas").trim() || "#111311";
-				const trail = rootStyle.getPropertyValue("--green-ink").trim() || "#b8d2ad";
-				const head = rootStyle.getPropertyValue("--ink").trim() || "#f0f0e8";
+				const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+				const spacing = 30;
+				const amplitude = 5;
+				const dotRadius = 1.8;
+				const meshAlpha = 0.18;
+				const frameInterval = 1000 / 28; // cap at 28fps
+				const dotColor = getComputedStyle(document.documentElement).getPropertyValue("--green-ink").trim() || "#b8d2ad";
 
-				let drops: number[] = [];
+				let width = 0;
+				let height = 0;
 				let frame = 0;
 				let lastTick = 0;
 
+				const draw = (time: number) => {
+					ctx.clearRect(0, 0, width, height);
+					ctx.fillStyle = dotColor;
+					ctx.strokeStyle = dotColor;
+
+					ctx.fill();
+					ctx.globalAlpha = 1;
+				};
+
 				const resize = () => {
 					const rect = canvas.getBoundingClientRect();
-					canvas.width = Math.max(1, Math.floor(rect.width));
-					canvas.height = Math.max(1, Math.floor(rect.height));
-					const columns = Math.ceil(canvas.width / fontSize);
-					const rows = Math.ceil(canvas.height / fontSize);
-					drops = Array.from({ length: columns }, () => -Math.random() * rows);
-					ctx.fillStyle = background;
-					ctx.fillRect(0, 0, canvas.width, canvas.height);
-					ctx.font = `${fontSize}px monospace`;
-					ctx.textBaseline = "top";
+					const dpr = window.devicePixelRatio || 1;
+					width = Math.max(1, Math.floor(rect.width));
+					height = Math.max(1, Math.floor(rect.height));
+					canvas.width = Math.floor(width * dpr);
+					canvas.height = Math.floor(height * dpr);
+					ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+					draw(lastTick);
 				};
 
 				const tick = (time: number) => {
 					frame = requestAnimationFrame(tick);
-					if (time - lastTick < frameInterval) return;
-					lastTick = time;
-
-					// Fade previous frame to leave a trailing tail
-					ctx.globalAlpha = 0.13;
-					ctx.fillStyle = background;
-					ctx.fillRect(0, 0, canvas.width, canvas.height);
-					ctx.globalAlpha = 1;
-
-					for (let i = 0; i < drops.length; i++) {
-						const y = drops[i] * fontSize;
-						if (y >= 0) {
-							const x = i * fontSize;
-							ctx.fillStyle = Math.random() > 0.94 ? head : trail;
-							ctx.fillText(glyphs[Math.floor(Math.random() * glyphs.length)], x, y);
-						}
-						if (y > canvas.height && Math.random() > 0.975) {
-							drops[i] = 0;
-						} else {
-							drops[i]++;
-						}
-					}
+					const elapsed = time - lastTick;
+					if (elapsed < frameInterval) return;
+					// Snap to the 28fps grid so frames stay evenly spaced instead of drifting
+					lastTick = time - (elapsed % frameInterval);
+					draw(time);
 				};
 
 				resize();
 				const observer = new ResizeObserver(resize);
 				observer.observe(canvas);
-				frame = requestAnimationFrame(tick);
+				// Reduced motion: keep the static dot field, skip the animation loop
+				if (!reduceMotion) frame = requestAnimationFrame(tick);
 
-				win.__matrixStop = () => {
+				win.__dotWavesStop = () => {
 					cancelAnimationFrame(frame);
 					observer.disconnect();
 				};
@@ -204,7 +205,7 @@ const allTags = [...tagCounts.entries()]
 
 				if (!readingBox || !boxContent) return;
 
-				initMatrixRain();
+				initDotWaves();
 
 				const startBoxAnimation = () => {
 					readingBox.style.transformOrigin = "top center";

@@ -2,6 +2,8 @@
 import { ClientRouter } from "astro:transitions";
 import { getCollection, render } from "astro:content";
 import "../../styles/global.css";
+// Deep import: the package root pulls in the native renderer, which the Cloudflare build can't bundle
+import { getImagePath } from "astro-takumi/dist/util.js";
 
 export async function getStaticPaths() {
 	const posts = (await getCollection("posts"))
@@ -50,6 +52,9 @@ const postTransition = {
 	forwards: postTransitionAnim,
 	backwards: postTransitionAnim,
 };
+
+const { url, site } = Astro;
+const openGraphImageUrl = getImagePath({ url, site });
 ---
 
 <html lang="en">
@@ -58,6 +63,13 @@ const postTransition = {
 		<meta name="viewport" content="width=device-width" />
 		<meta name="generator" content={Astro.generator} />
 		<meta name="description" content={post.data.excerpt} />
+
+		<meta property="og:title" content={post.data.title} />
+		<meta property="og:description" content={post.data.excerpt} />
+		<meta property="og:type" content="article" />
+		<meta property="og:url" content={url.href} />
+		<meta property="og:image" content={openGraphImageUrl} />
+
 		<ClientRouter />
 		<title>{post.data.title} — 一人の言葉</title>
 	</head>

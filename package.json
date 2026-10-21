@@ -2,6 +2,7 @@
   "name": "blog",
   "type": "module",
   "version": "0.0.1",
+  "packageManager": "pnpm@12.14.0",
   "engines": {
     "node": ">=22.22.0"
   },
@@ -16,12 +17,14 @@
     "@astrojs/cloudflare": "^14.4.0",
     "@astrojs/markdown-remark": "^7.3.3",
     "@astrojs/markdown-satteri": "^0.4.4",
+    "@fontsource/noto-sans-jp": "^5.3.1",
     "@myriaddreamin/rehype-typst": "^0.7.0",
     "@myriaddreamin/typst-ts-node-compiler": "^0.7.0",
     "@myriaddreamin/typst-ts-renderer": "^0.7.0",
     "@tailwindcss/vite": "^4.3.3",
     "animejs": "^4.5.0",
     "astro": "^7.4.0",
+    "astro-takumi": "^2.0.4",
     "astro-typst": "^0.12.4",
     "hast-util-from-html-isomorphic": "^2.0.0",
     "hast-util-to-text": "^4.0.2",
