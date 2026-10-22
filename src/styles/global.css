@@ -62,6 +62,10 @@
 	--line-strong: rgba(240, 240, 232, .34);
 	--green-wash: #263028;
 	--green-ink: #b8d2ad;
+	/* Background route: departure, destination, and the path between */
+	--route-from: #dcb46e;
+	--route-to: #e0897a;
+	--route-line: #f2ead6;
 	--serif: "Newsreader", "Iowan Old Style", "Baskerville", serif;
 	--sans: "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
 	--mono: "Ioskeley Mono", "SFMono-Regular", "Cascadia Mono", Menlo, monospace;
@@ -129,7 +133,7 @@ a {
 	padding: clamp(16px, 2.5vh, 28px) 24px;
 }
 
-/* Landing page: a dot field rippling with waves fills the stage behind the reading box */
+/* Landing page: Dijkstra's shortest-path search across downtown Taipei plays out behind the reading box */
 .landing-stage {
 	position: relative;
 }
@@ -140,8 +144,29 @@ a {
 	z-index: 0;
 	width: 100%;
 	height: 100%;
-	opacity: .55;
+	opacity: .8;
 	pointer-events: none;
+}
+
+/* Street data attribution for the background map (required by the ODbL) */
+.map-credit {
+	position: absolute;
+	right: 12px;
+	bottom: 6px;
+	z-index: 1;
+	margin: 0;
+	color: var(--soft-ink);
+	font-family: var(--mono);
+	font-size: .66rem;
+	opacity: .7;
+}
+
+.map-credit a {
+	text-decoration: none;
+}
+
+.map-credit a:hover {
+	text-decoration: underline;
 }
 
 /* A folded note: first a horizontal stroke, then a full reading surface. */
@@ -153,7 +178,7 @@ a {
 	max-height: none;
 	overflow: hidden;
 	border: 1px solid var(--line);
-	/* Translucent so the matrix rain shows faintly through; children stay transparent */
+	/* Translucent so the background search shows faintly through; children stay transparent */
 	background: color-mix(in srgb, var(--surface) 89%, transparent);
 }
 
@@ -441,7 +466,7 @@ button:focus-visible,
 		padding: 8px 10px;
 	}
 
-	/* The box fills the stage on phones: let the matrix rain show through it */
+	/* The box nearly fills the stage on phones */
 	.reading-box {
 		width: 100%;
 		height: 90%;
