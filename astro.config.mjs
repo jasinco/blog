@@ -47,6 +47,9 @@ export default defineConfig({
 					fs.readFileSync('./public/fonts/ioskeley/IoskeleyMono-Regular.woff2'),
 					fs.readFileSync('./public/fonts/ioskeley/IoskeleyMono-SemiBold.woff2'),
 					fs.readFileSync('./public/fonts/ioskeley/IoskeleyMono-Bold.woff2'),
+					// Serif for the title and brand, matching --serif on the site
+					fs.readFileSync('./node_modules/@fontsource/newsreader/files/newsreader-latin-500-normal.woff2'),
+					fs.readFileSync('./node_modules/@fontsource/newsreader/files/newsreader-latin-600-normal.woff2'),
 					// Japanese fallback for titles like 一人の言葉 (Ioskeley has no CJK glyphs)
 					fs.readFileSync('./node_modules/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-400-normal.woff2'),
 					fs.readFileSync('./node_modules/@fontsource/noto-sans-jp/files/noto-sans-jp-japanese-700-normal.woff2'),

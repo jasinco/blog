@@ -12,17 +12,21 @@ const colors = {
 };
 
 const font = '"Ioskeley Mono", "Noto Sans JP"';
+// Family name as declared inside the @fontsource woff2 files
+const serif = '"Newsreader 16pt 16pt", "Noto Sans JP"';
 const brand = '一人の言葉';
 const domain = 'blog.jasinco.work';
 
 const textOf = (document, selector) => document.querySelector(selector)?.textContent?.trim() ?? '';
 
 /** Open Graph renderer for astro-takumi: dark sheet on a dot grid, matching the landing page. */
-export async function renderOgImage({ title, description, document }) {
+export async function renderOgImage({ title: pageTitle, description, document }) {
+	// Page <title>s carry the brand, which the card already shows in its top bar
+	const title = pageTitle.replace(new RegExp(`^${brand}\\s*—\\s*|\\s*—\\s*${brand}$`), '') || pageTitle;
 	const date = textOf(document, '.post-sheet-meta');
 	const tags = [...document.querySelectorAll('.post-tag-link')].map((el) => el.textContent.trim()).slice(0, 4);
 	const isPost = Boolean(date);
-	const titleSize = title.length > 28 ? 64 : 84;
+	const titleSize = title.length > 28 ? 72 : 96;
 
 	return h(
 		'div',
@@ -67,7 +71,7 @@ export async function renderOgImage({ title, description, document }) {
 						fontSize: 28,
 					},
 				},
-				h('div', { style: { display: 'flex', fontWeight: 700, color: colors.ink } }, brand),
+				h('div', { style: { display: 'flex', fontFamily: serif, fontWeight: 600, color: colors.ink } }, brand),
 				h('div', { style: { display: 'flex', color: colors.softInk } }, isPost ? date : '~/notes'),
 			),
 			// Title + excerpt
@@ -92,10 +96,11 @@ export async function renderOgImage({ title, description, document }) {
 					{
 						style: {
 							display: 'block',
+							fontFamily: serif,
 							fontSize: titleSize,
-							fontWeight: 600,
-							lineHeight: 1.08,
-							letterSpacing: '-0.02em',
+							fontWeight: 500,
+							lineHeight: 1.02,
+							letterSpacing: '-0.025em',
 							lineClamp: 2,
 						},
 					},

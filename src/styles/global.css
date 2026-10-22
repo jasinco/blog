@@ -1,5 +1,8 @@
 @import "tailwindcss";
 @import "@fontsource/noto-sans-jp/japanese-400.css";
+@import "@fontsource/newsreader/latin-400.css";
+@import "@fontsource/newsreader/latin-500.css";
+@import "@fontsource/newsreader/latin-600.css";
 
 @font-face {
 	font-family: "Ioskeley Mono";
@@ -55,9 +58,11 @@
 	--ink: #f0f0e8;
 	--soft-ink: #a9ada5;
 	--line: rgba(240, 240, 232, .14);
+	/* Outlines that mark something as interactive need 3:1 against the surface */
+	--line-strong: rgba(240, 240, 232, .34);
 	--green-wash: #263028;
 	--green-ink: #b8d2ad;
-	--serif: "Iowan Old Style", "Baskerville", "Times New Roman", serif;
+	--serif: "Newsreader", "Iowan Old Style", "Baskerville", serif;
 	--sans: "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
 	--mono: "Ioskeley Mono", "SFMono-Regular", "Cascadia Mono", Menlo, monospace;
 	--code: "Ioskeley Mono", "SFMono-Regular", "Cascadia Mono", Menlo, monospace;
@@ -106,7 +111,7 @@ a {
 	font-family: var(--serif);
 	font-size: 1.2rem;
 	font-weight: 600;
-	letter-spacing: -.04em;
+	letter-spacing: -.02em;
 	text-decoration: none;
 }
 
@@ -144,11 +149,12 @@ a {
 	position: relative;
 	z-index: 1;
 	width: min(100%, 860px);
-	height: min(60dvh, 600px);
+	height: min(72dvh, 720px);
 	max-height: none;
 	overflow: hidden;
 	border: 1px solid var(--line);
-	background: var(--surface);
+	/* Translucent so the matrix rain shows faintly through; children stay transparent */
+	background: color-mix(in srgb, var(--surface) 89%, transparent);
 }
 
 .box-content {
@@ -164,7 +170,6 @@ a {
 	flex-direction: column;
 	gap: 10px;
 	padding: clamp(20px, 3.2vh, 34px) clamp(22px, 6vw, 56px) clamp(14px, 2.4vh, 24px);
-	background: var(--surface);
 }
 
 h1,
@@ -187,7 +192,7 @@ h1 {
 	font-family: var(--mono);
 	font-size: clamp(1.18rem, 2.9vw, 2.2rem);
 	font-weight: 500;
-	letter-spacing: -.055em;
+	letter-spacing: -.01em;
 }
 
 .terminal-prompt {
@@ -219,7 +224,6 @@ h1 {
 	gap: 6px;
 	padding: 10px clamp(22px, 6vw, 56px);
 	border-top: 1px solid var(--line);
-	background: var(--surface);
 	overflow-x: auto;
 	scrollbar-width: none;
 	-ms-overflow-style: none;
@@ -229,13 +233,15 @@ h1 {
 	display: none;
 }
 
-.tag-filter-btn {
+.tag-filter-btn,
+.post-tag-pill {
 	display: inline-flex;
 	align-items: center;
 	gap: 5px;
-	padding: 3px 8px;
+	min-height: 24px;
+	padding: 3px 9px;
 	background: transparent;
-	border: 1px solid var(--line);
+	border: 1px solid var(--line-strong);
 	border-radius: 2px;
 	color: var(--soft-ink);
 	font-family: var(--mono);
@@ -248,7 +254,7 @@ h1 {
 
 .tag-filter-btn:hover {
 	color: var(--ink);
-	border-color: rgba(240, 240, 232, .28);
+	border-color: var(--soft-ink);
 	background: rgba(240, 240, 232, .04);
 }
 
@@ -282,8 +288,27 @@ h1 {
 	grid-template-columns: 96px 1fr auto;
 	align-items: start;
 	gap: 18px;
+	position: relative;
+	isolation: isolate;
 	padding: 16px clamp(22px, 6vw, 56px);
-	background: var(--surface);
+}
+
+/* Hover wash: an overlay that fades in quickly and lingers on the way out */
+.post::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	z-index: -1;
+	background: var(--green-wash);
+	opacity: 0;
+	transition: opacity .72s cubic-bezier(.33, 1, .68, 1);
+	pointer-events: none;
+}
+
+.post:hover::before,
+.post:focus-within::before {
+	opacity: 1;
+	transition: opacity .18s cubic-bezier(.16, 1, .3, 1);
 }
 
 .post+.post {
@@ -293,7 +318,7 @@ h1 {
 .post-date {
 	margin: 5px 0 0;
 	color: var(--soft-ink);
-	font-size: .72rem;
+	font-size: .75rem;
 	line-height: 1.3;
 }
 
@@ -304,10 +329,14 @@ h1 {
 	font-family: var(--serif);
 	font-size: clamp(1.25rem, 2.3vw, 1.9rem);
 	font-weight: 500;
-	letter-spacing: -.045em;
+	letter-spacing: -.025em;
 	line-height: 1.02;
 	position: relative;
-	cursor: pointer;
+}
+
+.post-title-link {
+	color: inherit;
+	text-decoration: none;
 }
 
 .post-copy h2::after {
@@ -323,7 +352,7 @@ h1 {
 }
 
 .post-copy h2:hover::after,
-.post-copy h2:focus-visible::after {
+.post-copy h2:focus-within::after {
 	width: 100%;
 }
 
@@ -335,7 +364,7 @@ h1 {
 	line-height: 1.6;
 }
 
-.post a {
+.post-read {
 	margin-top: 4px;
 	color: var(--green-ink);
 	font-size: .84rem;
@@ -345,7 +374,7 @@ h1 {
 	transition: transform .2s ease;
 }
 
-.post a:hover {
+.post-read:hover {
 	transform: translateX(3px);
 }
 
@@ -354,21 +383,6 @@ h1 {
 	flex-wrap: wrap;
 	gap: 6px;
 	margin-top: 10px;
-}
-
-.post-tag-pill {
-	display: inline-flex;
-	align-items: center;
-	padding: 1px 7px;
-	background: transparent;
-	border: 1px solid var(--line);
-	border-radius: 2px;
-	color: var(--soft-ink);
-	font-family: var(--mono);
-	font-size: .68rem;
-	line-height: 1.3;
-	cursor: pointer;
-	transition: all .15s ease;
 }
 
 .post-tag-pill:hover {
@@ -403,6 +417,12 @@ button:focus-visible,
 		padding-inline: 20px;
 	}
 
+	.tag-filter-btn,
+	.post-tag-pill {
+		min-height: 32px;
+		padding: 5px 11px;
+	}
+
 	.tag-filter-bar {
 		padding: 8px 16px;
 		gap: 5px;
@@ -421,9 +441,10 @@ button:focus-visible,
 		padding: 8px 10px;
 	}
 
+	/* The box fills the stage on phones: let the matrix rain show through it */
 	.reading-box {
 		width: 100%;
-		height: 100%;
+		height: 90%;
 	}
 
 	.box-header {
@@ -450,7 +471,7 @@ button:focus-visible,
 		grid-column: 1;
 	}
 
-	.post a {
+	.post-read {
 		grid-column: 2;
 		grid-row: 2;
 	}
@@ -464,8 +485,8 @@ button:focus-visible,
 
 @media (prefers-reduced-motion: reduce) {
 
-	.post,
-	.post a {
+	.post::before,
+	.post-read {
 		transition: none;
 	}
 }
