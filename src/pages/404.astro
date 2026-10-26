@@ -1,0 +1,72 @@
+---
+import { ClientRouter } from "astro:transitions";
+import Ascii from "ascii.rest/astro";
+import "../styles/global.css";
+// Deep import: the package root pulls in the native renderer, which the Cloudflare build can't bundle
+import { getImagePath } from "astro-takumi/dist/util.js";
+
+const { url, site } = Astro;
+// astro-takumi fails the build on any page without these og: tags
+const openGraphImageUrl = getImagePath({ url, site });
+const pageTitle = "Page not found — 一人の言葉";
+---
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width" />
+		<meta name="generator" content={Astro.generator} />
+		<meta name="robots" content="noindex" />
+		<meta property="og:title" content={pageTitle} />
+		<meta property="og:type" content="website" />
+		<meta property="og:url" content={url.href} />
+		<meta property="og:image" content={openGraphImageUrl} />
+		<ClientRouter />
+		<title>{pageTitle}</title>
+	</head>
+	<body>
+		<header class="site-bar" transition:persist>
+			<a href="/" class="brand" aria-label="一人の言葉 home">一人の言葉</a>
+			<p>Personal notes</p>
+		</header>
+
+		<main class="not-found" transition:animate="fade">
+			<Ascii piece="radar" label="Radar sweep" options={{ range: 24, unit: "nm" }} />
+			<Ascii piece="glitch" label="not found" options={{ text: "not found" }} />
+			<h1 class="not-found-title">404 — page not found</h1>
+			<p class="not-found-message">why are you here?</p>
+			<a href="/" class="not-found-home">← back to the notes</a>
+		</main>
+	</body>
+</html>
+
+<style>
+	.not-found {
+		min-height: calc(100dvh - 4rem);
+		display: grid;
+		place-content: center;
+		justify-items: center;
+		gap: 1.25rem;
+		padding: 2rem 1rem;
+	}
+
+	/* The widest piece (glitch) is 64 columns (~38.4em of monospace); shrink both to fit phones */
+	.not-found :global(ascii-art) {
+		max-width: 100%;
+		font-size: clamp(0.4rem, calc((100vw - 2rem) / 40), 0.9rem);
+	}
+
+	.not-found-title {
+		margin: 0;
+		font-size: 1.25rem;
+	}
+
+	.not-found-message {
+		margin: 0;
+		text-align: center;
+	}
+
+	.not-found-home {
+		color: inherit;
+	}
+</style>
