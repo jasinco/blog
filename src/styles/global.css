@@ -62,10 +62,6 @@
 	--line-strong: rgba(240, 240, 232, .34);
 	--green-wash: #263028;
 	--green-ink: #b8d2ad;
-	/* Background route: departure, destination, and the path between */
-	--route-from: #dcb46e;
-	--route-to: #e0897a;
-	--route-line: #f2ead6;
 	--serif: "Newsreader", "Iowan Old Style", "Baskerville", serif;
 	--sans: "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
 	--mono: "Ioskeley Mono", "SFMono-Regular", "Cascadia Mono", Menlo, monospace;
@@ -133,7 +129,7 @@ a {
 	padding: clamp(16px, 2.5vh, 28px) 24px;
 }
 
-/* Landing page: Dijkstra's shortest-path search across downtown Taipei plays out behind the reading box */
+/* Landing page: a halftone dot animation plays behind the reading box */
 .landing-stage {
 	position: relative;
 }
@@ -148,25 +144,31 @@ a {
 	pointer-events: none;
 }
 
-/* Street data attribution for the background map (required by the ODbL) */
-.map-credit {
-	position: absolute;
-	right: 12px;
-	bottom: 6px;
-	z-index: 1;
-	margin: 0;
-	color: var(--soft-ink);
-	font-family: var(--mono);
-	font-size: .66rem;
-	opacity: .7;
+/* Phones: ascii.rest's glider gun in place of the canvas */
+.animation-ascii {
+	display: none;
 }
 
-.map-credit a {
-	text-decoration: none;
-}
+@media (max-width: 600px) {
+	.animation-bg {
+		display: none;
+	}
 
-.map-credit a:hover {
-	text-decoration: underline;
+	.animation-ascii {
+		position: absolute;
+		inset: 0;
+		z-index: 0;
+		display: grid;
+		place-items: center;
+		margin: 0;
+		color: var(--ink);
+		font-family: var(--mono);
+		/* 56 columns across the screen: a mono glyph is about 0.6em wide */
+		font-size: calc(94vw / 56 / .6);
+		font-weight: 600;
+		line-height: 1.1;
+		pointer-events: none;
+	}
 }
 
 /* A folded note: first a horizontal stroke, then a full reading surface. */

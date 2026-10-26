@@ -70,7 +70,7 @@ const pageDescription = "A personal collection of bewilderments, essays, and not
 
 		<main class="stage landing-stage" transition:animate="fade">
 			<canvas class="animation-bg" aria-hidden="true"></canvas>
-			<p class="map-credit">Taipei · <a href="https://www.openstreetmap.org/copyright">© OpenStreetMap contributors</a></p>
+			<pre class="animation-ascii" aria-hidden="true"></pre>
 			<section class="reading-box" aria-labelledby="page-title">
 				<div class="box-content">
 					<header class="box-header">
@@ -123,462 +123,15 @@ const pageDescription = "A personal collection of bewilderments, essays, and not
 
 		<script>
 			import { animate } from "animejs";
-			import {
-				BufferAttribute,
-				BufferGeometry,
-				Color,
-				LineBasicMaterial,
-				LineSegments,
-				LinearSRGBColorSpace,
-				OrthographicCamera,
-				Points,
-				Scene,
-				ShaderMaterial,
-				WebGLRenderer,
-			} from "three";
+			import { mount } from "ascii.rest";
+			import { gliderGun, stormPlains } from "ascii.rest/pieces";
 
-			// Street graph of downtown Taipei (Ximending to Taipei 101), baked from OpenStreetMap by
-			// scripts/build-street-graph.py. Metres from the centre, x east, y south.
-			type StreetGraph = { span: [number, number]; nodes: number[]; edges: number[][] };
-			let streetGraph: Promise<StreetGraph> | null = null;
-			const loadStreetGraph = () => {
-				streetGraph ??= fetch("/data/streets.json").then((res) => {
-					if (!res.ok) throw new Error(`street graph: ${res.status}`);
-					return res.json() as Promise<StreetGraph>;
-				});
-				return streetGraph;
-			};
-
-			// Binary min-heap of [distance, node]
-			const heapPush = (heap: [number, number][], item: [number, number]) => {
-				heap.push(item);
-				let i = heap.length - 1;
-				while (i > 0) {
-					const parent = (i - 1) >> 1;
-					if (heap[parent][0] <= heap[i][0]) break;
-					[heap[parent], heap[i]] = [heap[i], heap[parent]];
-					i = parent;
-				}
-			};
-			const heapPop = (heap: [number, number][]) => {
-				const top = heap[0];
-				const last = heap.pop()!;
-				if (heap.length) {
-					heap[0] = last;
-					let i = 0;
-					for (;;) {
-						const l = i * 2 + 1;
-						const r = l + 1;
-						let m = i;
-						if (l < heap.length && heap[l][0] < heap[m][0]) m = l;
-						if (r < heap.length && heap[r][0] < heap[m][0]) m = r;
-						if (m === i) break;
-						[heap[m], heap[i]] = [heap[i], heap[m]];
-						i = m;
-					}
-				}
-				return top;
-			};
-
-			// Dijkstra's shortest path across Taipei's streets (three.js, 28fps).
-			// The map is drawn once and stays put; each run draws two picked points, marks the intersections
-			// the search settles as it spreads out, then the route between them.
-			const initDijkstra = () => {
-				const win = window as Window & { __dijkstraStop?: () => void };
-				win.__dijkstraStop?.();
-				win.__dijkstraStop = undefined;
-
+			// Returns the stop function, so the page can end it on navigation
+			const initDotField = () => {
 				const canvas = document.querySelector<HTMLCanvasElement>(".animation-bg");
-				if (!canvas) return;
-
 				const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-				const pickTime = 0.6; // the two points appear
-				const searchTime = 4.5; // seconds for the search to spread out to the target
-				const traceTime = 2; // seconds to draw the shortest path
-				const holdTime = 2.4;
-				const dimTime = 1.2; // marks, points and route dim away
-				const runTime = pickTime + searchTime + traceTime + holdTime + dimTime;
-				const frameInterval = 1000 / 28; // cap at 28fps
-				const css = getComputedStyle(document.documentElement);
-				// Raw sRGB values, written straight out (output colour space is left linear below)
-				const token = (name: string, fallback: string) =>
-					new Color().setStyle(css.getPropertyValue(name).trim() || fallback, LinearSRGBColorSpace);
-				const ink = token("--ink", "#f0f0e8");
-				const green = token("--green-ink", "#b8d2ad");
-				const soft = token("--soft-ink", "#a9ada5");
-				const departure = token("--route-from", "#dcb46e");
-				const destination = token("--route-to", "#e0897a");
-				const routeLine = token("--route-line", "#f2ead6");
-
-				let renderer: WebGLRenderer;
-				try {
-					renderer = new WebGLRenderer({ canvas, alpha: true, antialias: true });
-				} catch {
-					return; // No WebGL: leave the background empty
-				}
-				renderer.outputColorSpace = LinearSRGBColorSpace;
-				renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-
-				const scene = new Scene();
-				// CSS pixel coordinates, y pointing down
-				const camera = new OrthographicCamera(0, 1, 0, 1, -1, 1);
-
-				const pointMaterial = new ShaderMaterial({
-					uniforms: { uScale: { value: 1 }, uFade: { value: 1 } },
-					transparent: true,
-					depthTest: false,
-					depthWrite: false,
-					vertexShader: /* glsl */ `
-						attribute vec4 aColor;
-						attribute float aSize;
-						uniform float uScale;
-						varying vec4 vColor;
-						void main() {
-							vColor = aColor;
-							gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-							gl_PointSize = aSize * uScale;
-						}
-					`,
-					fragmentShader: /* glsl */ `
-						uniform float uFade;
-						varying vec4 vColor;
-						void main() {
-							float a = 1.0 - smoothstep(0.38, 0.5, length(gl_PointCoord - 0.5));
-							if (a <= 0.0) discard;
-							gl_FragColor = vec4(vColor.rgb, vColor.a * a * uFade);
-						}
-					`,
-				});
-				// Same dots for each run's marks, points and route, dimmed together through uFade
-				const overlayMaterial = pointMaterial.clone();
-				const lineMaterial = new LineBasicMaterial({ vertexColors: true, transparent: true, depthTest: false, depthWrite: false });
-
-				// The map at the current canvas size: built once per resize
-				type StreetMap = {
-					count: number;
-					xs: Float32Array;
-					ys: Float32Array;
-					edges: number[]; // endpoint pairs
-					spans: number[]; // first vertex and vertex count of each street's line segments
-					lines: number[][]; // screen-space polyline of each street
-					adj: [number, number, number][][]; // [neighbour, metres, street]
-					portrait: boolean;
-					width: number;
-					height: number;
-					nodeGeo: BufferGeometry;
-					edgeGeo: BufferGeometry;
-					markGeo: BufferGeometry; // one mark per intersection, shown once the search settles it
-				};
-				// One search over the map
-				type Search = {
-					source: number;
-					target: number;
-					order: number[]; // intersections in the order the search settled them
-					settle: Float64Array; // distance at which each was settled
-					goal: number; // distance to the target
-					marked: number; // how far into `order` the marks have been drawn
-					cooled: number; // marks before this have finished flashing
-					pathSamples: number;
-				};
-
-				const buildMap = (width: number, height: number, graph: StreetGraph): StreetMap => {
-					const count = graph.nodes.length / 2;
-					// North up, covering the canvas; portrait screens see a narrower east–west slice
-					const portrait = height > width;
-					const [spanX, spanY] = graph.span;
-					const scale = Math.max(width / spanX, height / spanY);
-					const toScreen = (x: number, y: number): [number, number] => [x * scale + width / 2, y * scale + height / 2];
-					const xs = new Float32Array(count);
-					const ys = new Float32Array(count);
-					for (let i = 0; i < count; i++) [xs[i], ys[i]] = toScreen(graph.nodes[i * 2], graph.nodes[i * 2 + 1]);
-
-					// Streets are treated as two-way, like a walking route
-					const edges: number[] = [];
-					const spans: number[] = [];
-					const lines: number[][] = [];
-					const segments: number[] = [];
-					const adj: [number, number, number][][] = Array.from({ length: count }, () => []);
-					graph.edges.forEach(([a, b, metres, ...bends], e) => {
-						const line = [xs[a], ys[a]];
-						for (let k = 0; k < bends.length; k += 2) line.push(...toScreen(bends[k], bends[k + 1]));
-						line.push(xs[b], ys[b]);
-						spans.push(segments.length / 3, (line.length / 2 - 1) * 2);
-						for (let k = 0; k + 3 < line.length; k += 2) segments.push(line[k], line[k + 1], 0, line[k + 2], line[k + 3], 0);
-						adj[a].push([b, metres, e]);
-						adj[b].push([a, metres, e]);
-						edges.push(a, b);
-						lines.push(line);
-					});
-
-					const nodeGeo = new BufferGeometry();
-					const nodePos = new Float32Array(count * 3);
-					for (let i = 0; i < count; i++) nodePos.set([xs[i], ys[i], 0], i * 3);
-					nodeGeo.setAttribute("position", new BufferAttribute(nodePos, 3));
-					// The map's look is fixed: coloured once here, never touched per frame
-					const nodeColor = new Float32Array(count * 4);
-					for (let i = 0; i < count; i++) nodeColor.set([soft.r, soft.g, soft.b, 0.5], i * 4);
-					nodeGeo.setAttribute("aColor", new BufferAttribute(nodeColor, 4));
-					nodeGeo.setAttribute("aSize", new BufferAttribute(new Float32Array(count).fill(2.6), 1));
-
-					const edgeGeo = new BufferGeometry();
-					edgeGeo.setAttribute("position", new BufferAttribute(new Float32Array(segments), 3));
-					const vertexCount = segments.length / 3;
-					const edgeColor = new Float32Array(vertexCount * 4);
-					for (let k = 0; k < vertexCount; k++) edgeColor.set([green.r, green.g, green.b, 0.3], k * 4);
-					edgeGeo.setAttribute("color", new BufferAttribute(edgeColor, 4));
-
-					const markGeo = new BufferGeometry();
-					markGeo.setAttribute("position", new BufferAttribute(nodePos.slice(), 3));
-					markGeo.setAttribute("aColor", new BufferAttribute(new Float32Array(count * 4), 4));
-					markGeo.setAttribute("aSize", new BufferAttribute(new Float32Array(count), 1));
-
-					return { count, xs, ys, edges, spans, lines, adj, portrait, width, height, nodeGeo, edgeGeo, markGeo };
-				};
-
-				// Path dots live in one buffer sized for the longest path a run could need; only the draw range changes
-				const pathGeo = new BufferGeometry();
-				const pathCapacity = 20000;
-				pathGeo.setAttribute("position", new BufferAttribute(new Float32Array(pathCapacity * 3), 3));
-				pathGeo.setAttribute("aColor", new BufferAttribute(new Float32Array(pathCapacity * 4), 4));
-				pathGeo.setAttribute("aSize", new BufferAttribute(new Float32Array(pathCapacity).fill(3.4), 1));
-				pathGeo.setDrawRange(0, 0);
-
-				// The two picked points
-				const endsGeo = new BufferGeometry();
-				endsGeo.setAttribute("position", new BufferAttribute(new Float32Array(6), 3));
-				endsGeo.setAttribute("aColor", new BufferAttribute(new Float32Array(8), 4));
-				endsGeo.setAttribute("aSize", new BufferAttribute(new Float32Array(2), 1));
-
-				const runSearch = (map: StreetMap): Search => {
-					const { count, xs, ys, adj, width, height } = map;
-					// Start near one end of the screen's long side, finish near the other
-					const band = (from: number, to: number) => {
-						const picks: number[] = [];
-						for (let i = 0; i < count; i++) {
-							const along = map.portrait ? ys[i] / height : xs[i] / width;
-							const across = map.portrait ? xs[i] / width : ys[i] / height;
-							if (along > from && along < to && across > 0.15 && across < 0.85) picks.push(i);
-						}
-						return picks.length ? picks : [...Array(count).keys()];
-					};
-					const start = band(0.04, 0.24);
-					const finish = band(0.76, 0.96);
-					const any = (list: number[]) => list[Math.floor(Math.random() * list.length)];
-					const flip = Math.random() < 0.5; // either direction
-
-					let source = 0;
-					let target = 0;
-					let settle = new Float64Array(count);
-					let order: number[] = [];
-					let prev = new Int32Array(count);
-					let via = new Int32Array(count); // street used to reach each node
-					for (let attempt = 0; attempt < 40; attempt++) {
-						source = any(flip ? finish : start);
-						target = any(flip ? start : finish);
-						settle = new Float64Array(count).fill(Infinity);
-						order = [];
-						prev = new Int32Array(count).fill(-1);
-						via = new Int32Array(count).fill(-1);
-						const dist = new Float64Array(count).fill(Infinity);
-						const heap: [number, number][] = [];
-						dist[source] = 0;
-						heapPush(heap, [0, source]);
-						while (heap.length) {
-							const [d, u] = heapPop(heap);
-							if (d > dist[u] || settle[u] !== Infinity) continue;
-							settle[u] = d;
-							order.push(u);
-							if (u === target) break; // early exit: the target is settled
-							for (const [v, w, e] of adj[u]) {
-								if (settle[v] !== Infinity || d + w >= dist[v]) continue;
-								dist[v] = d + w;
-								prev[v] = u;
-								via[v] = e;
-								heapPush(heap, [dist[v], v]);
-							}
-						}
-						if (settle[target] !== Infinity) break; // otherwise an island: try another pair
-					}
-
-					// Shortest path as a dense run of dots following the streets' shapes
-					const chain: number[][] = [];
-					for (let v = target; v !== source && v !== -1; v = prev[v]) {
-						const e = via[v];
-						const line = map.lines[e];
-						const pts: number[] = [];
-						// Orient the street's polyline from prev[v] to v
-						if (map.edges[e * 2] === prev[v]) pts.push(...line);
-						else for (let k = line.length - 2; k >= 0; k -= 2) pts.push(line[k], line[k + 1]);
-						chain.unshift(pts);
-					}
-					const position = pathGeo.getAttribute("position") as BufferAttribute;
-					let n = 0;
-					const add = (x: number, y: number) => {
-						if (n < pathCapacity) position.setXYZ(n++, x, y, 0);
-					};
-					for (const pts of chain) {
-						for (let k = 0; k + 3 < pts.length; k += 2) {
-							const steps = Math.max(1, Math.round(Math.hypot(pts[k + 2] - pts[k], pts[k + 3] - pts[k + 1]) / 2.5));
-							for (let s = 0; s < steps; s++) add(pts[k] + ((pts[k + 2] - pts[k]) * s) / steps, pts[k + 1] + ((pts[k + 3] - pts[k + 1]) * s) / steps);
-						}
-					}
-					add(xs[target], ys[target]);
-					position.needsUpdate = true;
-
-					const ends = endsGeo.getAttribute("position") as BufferAttribute;
-					ends.setXYZ(0, xs[source], ys[source], 0);
-					ends.setXYZ(1, xs[target], ys[target], 0);
-					ends.needsUpdate = true;
-
-					// Clear the previous run's marks
-					const markColor = map.markGeo.getAttribute("aColor") as BufferAttribute;
-					(markColor.array as Float32Array).fill(0);
-					markColor.needsUpdate = true;
-
-					return { source, target, order, settle, goal: settle[target], marked: 0, cooled: 0, pathSamples: n };
-				};
-
-				let map: StreetMap | null = null;
-				let search: Search | null = null;
-				let runStart = performance.now();
-				const objects: (Points | LineSegments)[] = [];
-
-				const setMap = (width: number, height: number, graph: StreetGraph) => {
-					objects.forEach((o) => scene.remove(o));
-					objects.length = 0;
-					map?.nodeGeo.dispose();
-					map?.edgeGeo.dispose();
-					map?.markGeo.dispose();
-					map = buildMap(width, height, graph);
-					[
-						new LineSegments(map.edgeGeo, lineMaterial),
-						new Points(map.nodeGeo, pointMaterial),
-						new Points(map.markGeo, overlayMaterial),
-						new Points(pathGeo, overlayMaterial),
-						new Points(endsGeo, overlayMaterial),
-					].forEach((o) => {
-						o.frustumCulled = false;
-						scene.add(o);
-						objects.push(o);
-					});
-				};
-
-				const newSearch = (time: number) => {
-					if (!map) return;
-					search = runSearch(map);
-					runStart = time;
-				};
-
-				const draw = (time: number) => {
-					if (!map || !search) return;
-					const local = reduceMotion ? pickTime + searchTime + traceTime : (time - runStart) / 1000;
-					const appear = Math.min(1, local / pickTime);
-					const spread = Math.min(1, Math.max(0, (local - pickTime) / searchTime));
-					const trace = Math.min(1, Math.max(0, (local - pickTime - searchTime) / traceTime));
-					overlayMaterial.uniforms.uFade.value = 1 - Math.min(1, Math.max(0, (local - pickTime - searchTime - traceTime - holdTime) / dimTime));
-
-					// Departure and destination pop in slightly oversized and settle
-					const endColor = endsGeo.getAttribute("aColor") as BufferAttribute;
-					const endSize = endsGeo.getAttribute("aSize") as BufferAttribute;
-					for (let k = 0; k < 2; k++) {
-						const c = k === 0 ? departure : destination;
-						endColor.setXYZW(k, c.r, c.g, c.b, appear);
-						endSize.setX(k, 8 + (1 - appear) * 6);
-					}
-					endColor.needsUpdate = true;
-					endSize.needsUpdate = true;
-
-					// Marks: intersections flash as the search settles them, then rest green.
-					// Only the marks still flashing or newly settled are touched each frame.
-					const radius = spread * search.goal;
-					const flash = search.goal * 0.05;
-					const { order, settle } = search;
-					while (search.marked < order.length && settle[order[search.marked]] <= radius) search.marked++;
-					const markColor = map.markGeo.getAttribute("aColor") as BufferAttribute;
-					const markSize = map.markGeo.getAttribute("aSize") as BufferAttribute;
-					for (let k = search.cooled; k < search.marked; k++) {
-						const i = order[k];
-						const heat = Math.max(0, 1 - (radius - settle[i]) / flash);
-						const c = heat > 0.5 ? ink : green;
-						markColor.setXYZW(i, c.r, c.g, c.b, 0.55 + heat * 0.45);
-						markSize.setX(i, 3.4 + heat * 3);
-						if (heat === 0 && k === search.cooled) search.cooled++;
-					}
-					markColor.needsUpdate = true;
-					markSize.needsUpdate = true;
-
-					// The route draws along the streets, slowing as it reaches the target
-					const pathColor = pathGeo.getAttribute("aColor") as BufferAttribute;
-					const shown = Math.round(search.pathSamples * (1 - (1 - trace) ** 3));
-					for (let k = 0; k < shown; k++) pathColor.setXYZW(k, routeLine.r, routeLine.g, routeLine.b, 1);
-					pathColor.needsUpdate = true;
-					pathGeo.setDrawRange(0, shown);
-
-					renderer.render(scene, camera);
-				};
-
-				let graph: StreetGraph | null = null;
-				let width = 0;
-				let height = 0;
-				const resize = () => {
-					if (!graph) return;
-					const rect = canvas.getBoundingClientRect();
-					const w = Math.max(1, Math.floor(rect.width));
-					const h = Math.max(1, Math.floor(rect.height));
-					if (w === width && h === height) return;
-					width = w;
-					height = h;
-					renderer.setSize(width, height, false);
-					camera.right = width;
-					camera.bottom = height;
-					camera.updateProjectionMatrix();
-					pointMaterial.uniforms.uScale.value = renderer.getPixelRatio();
-					overlayMaterial.uniforms.uScale.value = renderer.getPixelRatio();
-					// Refit the map and start a fresh search on it
-					setMap(width, height, graph);
-					newSearch(performance.now());
-					draw(performance.now());
-				};
-
-				let frame = 0;
-				let lastTick = performance.now();
-				const tick = (time: number) => {
-					frame = requestAnimationFrame(tick);
-					const elapsed = time - lastTick;
-					if (elapsed < frameInterval) return;
-					// Snap to the 28fps grid so frames stay evenly spaced instead of drifting
-					lastTick = time - (elapsed % frameInterval);
-					if ((time - runStart) / 1000 > runTime) newSearch(time); // same map, new pair of points
-					draw(time);
-				};
-
-				let stopped = false;
-				const observer = new ResizeObserver(resize);
-				loadStreetGraph()
-					.then((loaded) => {
-						if (stopped) return;
-						graph = loaded;
-						resize();
-						observer.observe(canvas);
-						// Reduced motion: one finished search with its path, no animation loop
-						if (!reduceMotion) frame = requestAnimationFrame(tick);
-					})
-					.catch(() => {}); // No map data: leave the background empty
-
-				win.__dijkstraStop = () => {
-					stopped = true;
-					cancelAnimationFrame(frame);
-					observer.disconnect();
-					map?.nodeGeo.dispose();
-					map?.edgeGeo.dispose();
-					map?.markGeo.dispose();
-					pathGeo.dispose();
-					endsGeo.dispose();
-					pointMaterial.dispose();
-					overlayMaterial.dispose();
-					lineMaterial.dispose();
-					renderer.dispose();
-				};
+				if (!canvas || reduceMotion) return undefined;
+				return mount(canvas, stormPlains);
 			};
 
 			const initLandingPage = () => {
@@ -588,6 +141,7 @@ const pageDescription = "A personal collection of bewilderments, essays, and not
 						swapTimer?: number;
 						cursorAnimation?: ReturnType<typeof animate>;
 					};
+					__asciiStop?: () => void;
 				};
 
 				const previousState = win.__landingAnimations;
@@ -611,7 +165,16 @@ const pageDescription = "A personal collection of bewilderments, essays, and not
 
 				if (!readingBox || !boxContent) return;
 
-				initDijkstra();
+				// Phones get ascii.rest's glider gun in a <pre>; larger screens the canvas piece
+				win.__asciiStop?.();
+				win.__asciiStop = undefined;
+				const ascii = document.querySelector<HTMLElement>(".animation-ascii");
+				if (ascii && window.matchMedia("(max-width: 600px)").matches) {
+					const stop = mount(ascii, gliderGun);
+					win.__asciiStop = stop;
+				} else {
+					win.__asciiStop = initDotField();
+				}
 
 				const startBoxAnimation = () => {
 					readingBox.style.transformOrigin = "top center";
@@ -780,7 +343,7 @@ const pageDescription = "A personal collection of bewilderments, essays, and not
 			};
 
 			document.addEventListener("astro:before-swap", () => {
-				(window as Window & { __dijkstraStop?: () => void }).__dijkstraStop?.();
+				(window as Window & { __asciiStop?: () => void }).__asciiStop?.();
 			});
 			document.addEventListener("astro:page-load", initLandingPage);
 			window.addEventListener("pageshow", (event) => {

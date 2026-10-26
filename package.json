@@ -24,6 +24,7 @@
     "@myriaddreamin/typst-ts-renderer": "^0.7.0",
     "@tailwindcss/vite": "^4.3.3",
     "animejs": "^4.5.0",
+    "ascii.rest": "^0.4.0",
     "astro": "^7.4.0",
     "astro-takumi": "^2.0.4",
     "astro-typst": "^0.12.4",
