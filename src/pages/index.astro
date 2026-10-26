@@ -124,14 +124,14 @@ const pageDescription = "A personal collection of bewilderments, essays, and not
 		<script>
 			import { animate } from "animejs";
 			import { mount } from "ascii.rest";
-			import { gliderGun, stormPlains } from "ascii.rest/pieces";
+			import { bootLog,gliderGun, stormPlains,  earthrise } from "ascii.rest/pieces";
 
 			// Returns the stop function, so the page can end it on navigation
 			const initDotField = () => {
 				const canvas = document.querySelector<HTMLCanvasElement>(".animation-bg");
 				const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 				if (!canvas || reduceMotion) return undefined;
-				return mount(canvas, stormPlains);
+				return mount(canvas, earthrise);
 			};
 
 			const initLandingPage = () => {

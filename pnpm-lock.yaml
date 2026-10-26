@@ -162,13 +162,16 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  astro@7.4.1: eaeae473a455126dda2778a308561819593cc0fa0fcc54383b188169099e6451
+
 importers:
 
   .:
     dependencies:
       '@astrojs/cloudflare':
         specifier: ^14.4.0
-        version: 14.4.1(astro@7.4.1(@astrojs/markdown-remark@7.3.3(supports-color@10.2.2))(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))(esbuild@0.28.2)(jiti@2.7.0)(wrangler@4.151.2)(yaml@2.9.1)
+        version: 14.4.1(astro@7.4.1(patch_hash=eaeae473a455126dda2778a308561819593cc0fa0fcc54383b188169099e6451)(@astrojs/markdown-remark@7.3.3(supports-color@10.2.2))(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))(esbuild@0.28.2)(jiti@2.7.0)(wrangler@4.151.2)(yaml@2.9.1)
       '@astrojs/markdown-remark':
         specifier: ^7.3.3
         version: 7.3.3(supports-color@10.2.2)
@@ -201,13 +204,13 @@ importers:
         version: 0.4.0(react@19.3.1)
       astro:
         specifier: ^7.4.0
-        version: 7.4.1(@astrojs/markdown-remark@7.3.3(supports-color@10.2.2))(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
+        version: 7.4.1(patch_hash=eaeae473a455126dda2778a308561819593cc0fa0fcc54383b188169099e6451)(@astrojs/markdown-remark@7.3.3(supports-color@10.2.2))(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
       astro-takumi:
         specifier: ^2.0.4
         version: 2.0.4
       astro-typst:
         specifier: ^0.12.4
-        version: 0.12.4(@myriaddreamin/typst-ts-node-compiler@0.7.0)(@myriaddreamin/typst-ts-renderer@0.7.0)(@myriaddreamin/typst.ts@0.7.0(@myriaddreamin/typst-ts-renderer@0.7.0))(astro@7.4.1(@astrojs/markdown-remark@7.3.3(supports-color@10.2.2))(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))(cheerio@1.2.0)(supports-color@10.2.2)
+        version: 0.12.4(@myriaddreamin/typst-ts-node-compiler@0.7.0)(@myriaddreamin/typst-ts-renderer@0.7.0)(@myriaddreamin/typst.ts@0.7.0(@myriaddreamin/typst-ts-renderer@0.7.0))(astro@7.4.1(patch_hash=eaeae473a455126dda2778a308561819593cc0fa0fcc54383b188169099e6451)(@astrojs/markdown-remark@7.3.3(supports-color@10.2.2))(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))(cheerio@1.2.0)(supports-color@10.2.2)
       hast-util-from-html-isomorphic:
         specifier: ^2.0.0
         version: 2.0.0
@@ -2945,12 +2948,12 @@ snapshots:
       is-potential-custom-element-name: 1.0.1
       lru-cache: 11.5.3
 
-  '@astrojs/cloudflare@14.4.1(astro@7.4.1(@astrojs/markdown-remark@7.3.3(supports-color@10.2.2))(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))(esbuild@0.28.2)(jiti@2.7.0)(wrangler@4.151.2)(yaml@2.9.1)':
+  '@astrojs/cloudflare@14.4.1(astro@7.4.1(patch_hash=eaeae473a455126dda2778a308561819593cc0fa0fcc54383b188169099e6451)(@astrojs/markdown-remark@7.3.3(supports-color@10.2.2))(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))(esbuild@0.28.2)(jiti@2.7.0)(wrangler@4.151.2)(yaml@2.9.1)':
     dependencies:
       '@astrojs/internal-helpers': 0.13.0
       '@astrojs/underscore-redirects': 1.0.4
       '@cloudflare/vite-plugin': 1.64.0(vite@8.3.4(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))(wrangler@4.151.2)
-      astro: 7.4.1(@astrojs/markdown-remark@7.3.3(supports-color@10.2.2))(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
+      astro: 7.4.1(patch_hash=eaeae473a455126dda2778a308561819593cc0fa0fcc54383b188169099e6451)(@astrojs/markdown-remark@7.3.3(supports-color@10.2.2))(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
       piccolore: 0.1.3
       prismjs: 1.30.0
       vite: 8.3.4(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
@@ -3911,9 +3914,9 @@ snapshots:
 
   astring@1.9.0: {}
 
-  astro-integration-kit@0.19.1(astro@7.4.1(@astrojs/markdown-remark@7.3.3(supports-color@10.2.2))(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)):
+  astro-integration-kit@0.19.1(astro@7.4.1(patch_hash=eaeae473a455126dda2778a308561819593cc0fa0fcc54383b188169099e6451)(@astrojs/markdown-remark@7.3.3(supports-color@10.2.2))(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)):
     dependencies:
-      astro: 7.4.1(@astrojs/markdown-remark@7.3.3(supports-color@10.2.2))(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
+      astro: 7.4.1(patch_hash=eaeae473a455126dda2778a308561819593cc0fa0fcc54383b188169099e6451)(@astrojs/markdown-remark@7.3.3(supports-color@10.2.2))(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
       pathe: 1.1.2
 
   astro-takumi@2.0.4:
@@ -3928,14 +3931,14 @@ snapshots:
       - csstype
       - preact
 
-  astro-typst@0.12.4(@myriaddreamin/typst-ts-node-compiler@0.7.0)(@myriaddreamin/typst-ts-renderer@0.7.0)(@myriaddreamin/typst.ts@0.7.0(@myriaddreamin/typst-ts-renderer@0.7.0))(astro@7.4.1(@astrojs/markdown-remark@7.3.3(supports-color@10.2.2))(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))(cheerio@1.2.0)(supports-color@10.2.2):
+  astro-typst@0.12.4(@myriaddreamin/typst-ts-node-compiler@0.7.0)(@myriaddreamin/typst-ts-renderer@0.7.0)(@myriaddreamin/typst.ts@0.7.0(@myriaddreamin/typst-ts-renderer@0.7.0))(astro@7.4.1(patch_hash=eaeae473a455126dda2778a308561819593cc0fa0fcc54383b188169099e6451)(@astrojs/markdown-remark@7.3.3(supports-color@10.2.2))(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))(cheerio@1.2.0)(supports-color@10.2.2):
     dependencies:
       '@myriaddreamin/typst-ts-node-compiler': 0.7.0
       '@myriaddreamin/typst-ts-renderer': 0.7.0
       '@myriaddreamin/typst.ts': 0.7.0(@myriaddreamin/typst-ts-renderer@0.7.0)
       '@rollup/plugin-node-resolve': 16.0.3
-      astro: 7.4.1(@astrojs/markdown-remark@7.3.3(supports-color@10.2.2))(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
-      astro-integration-kit: 0.19.1(astro@7.4.1(@astrojs/markdown-remark@7.3.3(supports-color@10.2.2))(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
+      astro: 7.4.1(patch_hash=eaeae473a455126dda2778a308561819593cc0fa0fcc54383b188169099e6451)(@astrojs/markdown-remark@7.3.3(supports-color@10.2.2))(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
+      astro-integration-kit: 0.19.1(astro@7.4.1(patch_hash=eaeae473a455126dda2778a308561819593cc0fa0fcc54383b188169099e6451)(@astrojs/markdown-remark@7.3.3(supports-color@10.2.2))(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
       cheerio: 1.2.0
       rehype-stringify: 10.0.1
       typstx: 0.0.1(supports-color@10.2.2)
@@ -3944,7 +3947,7 @@ snapshots:
       - rollup
       - supports-color
 
-  astro@7.4.1(@astrojs/markdown-remark@7.3.3(supports-color@10.2.2))(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1):
+  astro@7.4.1(patch_hash=eaeae473a455126dda2778a308561819593cc0fa0fcc54383b188169099e6451)(@astrojs/markdown-remark@7.3.3(supports-color@10.2.2))(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1):
     dependencies:
       '@astrojs/compiler-rs': 0.5.2
       '@astrojs/internal-helpers': 0.13.0

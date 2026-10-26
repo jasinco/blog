@@ -3,3 +3,6 @@ minimumReleaseAge: 1440
 allowBuilds:
   esbuild: true
   workerd: true
+
+patchedDependencies:
+  astro@7.4.1: patches/astro@7.4.1.patch

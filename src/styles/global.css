@@ -176,12 +176,12 @@ a {
 	position: relative;
 	z-index: 1;
 	width: min(100%, 860px);
-	height: min(72dvh, 720px);
+	height: min(72dvh, 620px);
 	max-height: none;
 	overflow: hidden;
 	border: 1px solid var(--line);
 	/* Translucent so the background search shows faintly through; children stay transparent */
-	background: color-mix(in srgb, var(--surface) 89%, transparent);
+	background: color-mix(in srgb, var(--surface) 74%, transparent);
 }
 
 .box-content {
@@ -237,7 +237,7 @@ h1 {
 }
 
 .box-header>p {
-	max-width: 340px;
+	/*max-width: 340px;*/
 	margin-bottom: 0;
 	color: var(--soft-ink);
 	font-size: clamp(.92rem, 1.2vw, 1.02rem);

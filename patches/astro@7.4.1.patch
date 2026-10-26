@@ -1,0 +1,21 @@
+diff --git a/dist/core/routing/create-manifest.js b/dist/core/routing/create-manifest.js
+index ebd88684ee1ecf397bebad0aa5bb404a575f94a0..b3ce1e6730de6cbd1b508d109f7c3dfbe9c16575 100644
+--- a/dist/core/routing/create-manifest.js
++++ b/dist/core/routing/create-manifest.js
+@@ -102,7 +102,15 @@ function createFileBasedRoutes({ settings, cwd, fsMod }, logger) {
+ 		for (const basename of files) {
+ 			const resolved = path.join(dir, basename);
+ 			const file = slash(path.relative(cwd || rootPath, resolved));
+-			const isDir = fs.statSync(resolved).isDirectory();
++			// Editors (e.g. Neovim's writebackup) create `file~` and delete it while we walk;
++			// skip entries that vanish between readdir and stat instead of crashing the dev server.
++			let isDir;
++			try {
++				isDir = fs.statSync(resolved).isDirectory();
++			} catch (err) {
++				if (err?.code === "ENOENT") continue;
++				throw err;
++			}
+ 			const ext = path.extname(basename);
+ 			const name = ext ? basename.slice(0, -ext.length) : basename;
+ 			if (name[0] === "_") {
