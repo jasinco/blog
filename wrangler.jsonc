@@ -6,7 +6,9 @@
 	"main": "@astrojs/cloudflare/entrypoints/server",
 	"assets": {
 		"directory": "./dist",
-		"binding": "ASSETS"
+		"binding": "ASSETS",
+		// Serve the nearest 404.html for missing paths instead of an empty 404
+		"not_found_handling": "404-page"
 	},
 	"observability": {
 		"enabled": true
