@@ -2,7 +2,7 @@
 title: The C Programming Language
 date: 2026-10-20
 excerpt: "something to remind"
-draft: true
+draft: false
 tags:
   - c
 ---
