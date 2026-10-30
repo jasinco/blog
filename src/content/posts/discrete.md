@@ -352,18 +352,6 @@ inset: 10pt,
 )
 ```
 
-## Example
-```typst
-#import "@preview/curryst:0.6.0": prooftree, rule
-#prooftree(
-  rule(
-  $forall x [P(x) or Q(x)]$,
-  $forall x [P(x) -> R(x)]$,
-  $therefore forall x [not R(x) -> Q(x)]$
-  ),
-)
-```
-
 # Proofs
 trivial proof: $(p->q) and q$  
 vacuous proof: $(p->q) and not p$
@@ -416,6 +404,16 @@ a first, b second.
 a take 3 when first round
 
 ## Example
+```typst
+#import "@preview/curryst:0.6.0": prooftree, rule
+#prooftree(
+  rule(
+  $forall x [P(x) or Q(x)]$,
+  $forall x [P(x) -> R(x)]$,
+  $therefore forall x [not R(x) -> Q(x)]$
+  ),
+)
+```
 
 ```typst size=0.9
 #table(
