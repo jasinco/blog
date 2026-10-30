@@ -1,6 +1,6 @@
 ---
 title: Discrete Math (A)
-date: 2026-10-20
+date: 2026-10-30
 excerpt: "The abyss of non-continuous world"
 draft: false
 tags:

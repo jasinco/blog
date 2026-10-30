@@ -1,6 +1,6 @@
 ---
 title: The C Programming Language
-date: 2026-10-20
+date: 2026-10-30
 excerpt: "something to remind"
 draft: false
 tags:
