@@ -18,7 +18,9 @@ export async function getStaticPaths() {
 }
 
 const { post } = Astro.props as Awaited<ReturnType<typeof getStaticPaths>>[number]["props"];
-const { Content } = await render(post);
+const { Content, headings } = await render(post);
+const tocHeadings = headings.filter((h) => h.depth >= 1 && h.depth <= 3);
+const minHeadingDepth = tocHeadings.length > 0 ? Math.min(...tocHeadings.map((h) => h.depth)) : 1;
 
 const dateFormatter = new Intl.DateTimeFormat("en-GB", {
 	day: "2-digit",
@@ -88,7 +90,7 @@ const openGraphImageUrl = getImagePath({ url, site });
 			<a class="toolbar_tag" href="/">Photos</a>
 			<a class="toolbar_tag" href="https://github.com/jasinco">github</a>
 		</header>
-		<Ascii piece="aurora-fjord" class="animation-bg"/>
+		<Ascii piece="alpine-dawn" class="animation-bg" fps={4}/>
 
 		<main class="stage post-page" transition:animate={postTransition}>
 			<article class="post-sheet">
@@ -112,8 +114,33 @@ const openGraphImageUrl = getImagePath({ url, site });
 					<p class="post-sheet-excerpt">{post.data.excerpt}</p>
 				</header>
 
-				<div class="post-sheet-body">
-					<Content />
+				<div class="post-sheet-layout">
+					<div class="post-sheet-body">
+						<Content />
+					</div>
+					{tocHeadings.length > 0 && (
+						<aside class="post-toc" aria-label="Table of contents">
+							<p class="post-toc-title">On this page</p>
+							<nav class="post-toc-nav">
+								<ol class="post-toc-list">
+									{tocHeadings.map((heading) => (
+										<li
+											class="post-toc-item"
+											data-depth={Math.min(2, heading.depth - minHeadingDepth)}
+										>
+											<a
+												href={`#${heading.slug}`}
+												class="post-toc-link"
+												data-toc-slug={heading.slug}
+											>
+												{heading.text}
+											</a>
+										</li>
+									))}
+								</ol>
+							</nav>
+						</aside>
+					)}
 				</div>
 			</article>
 		</main>
@@ -123,23 +150,35 @@ const openGraphImageUrl = getImagePath({ url, site });
 				align-items: stretch;
 				justify-items: stretch;
 				height: calc(100dvh - var(--bar-height));
-				/* padding: clamp(16px, 3.5vh, 32px); */
-				padding-left:20vw;
-				padding-right:20vw;
+				padding: 5vh clamp(100px, 17vw, 260px) 0; 
+				/* padding-left:17vw; */
+				/* padding-right:17vw; */
 				/* The sheet runs to the bottom of the viewport */
 				padding-bottom: 0;
+				/* The sheet starts 20% down the viewport and rises to the bar as it scrolls
+				   (--sheet-scroll is set by the script) */
+				--sheet-start-ratio: .2;
+				--sheet-start: calc((100dvh - var(--bar-height)) * var(--sheet-start-ratio));
+				padding-top: max(0px, calc(var(--sheet-start) - var(--sheet-scroll, 0px)));
 				/* margin-top:50px; */
 				box-sizing: border-box;
+			}
+
+			/* Too short to scroll the gap closed: start at the bar instead */
+			.post-page.is-short {
+				--sheet-start: 0px;
 			}
 
 			/* Dim the misty-forest backdrop so it sits further behind the post */
 			:global(ascii-art.animation-bg) {
 				overflow: hidden;
-				filter: brightness(.6);
+				filter: brightness(.76);
+				/* color: green; */
 			}
 
 			/* The piece keeps its own aspect ratio; stretch it over the viewport and crop like a cover image */
 			:global(ascii-art.animation-bg > canvas),
+			:global(ascii-art.animation-bg > pre),
 			:global(ascii-art.animation-bg > div) {
 				height: 100%;
 				object-fit: cover;
@@ -278,8 +317,95 @@ const openGraphImageUrl = getImagePath({ url, site });
 				line-height: 1.7;
 			}
 
+			.post-sheet-layout {
+				display: flex;
+				align-items: flex-start;
+			}
+
 			.post-sheet-body {
+				flex: 1 1 0%;
+				min-width: 0;
 				padding: clamp(24px, 4vw, 52px);
+			}
+
+			.post-toc {
+				position: sticky;
+				top: 48px;
+				flex: 0 0 clamp(180px, 16vw, 240px);
+				max-height: calc(100dvh - var(--bar-height) - 48px);
+				display: flex;
+				flex-direction: column;
+				padding: clamp(24px, 4vw, 44px) clamp(18px, 2.5vw, 32px) 28px 0;
+			}
+
+			.post-toc-title {
+				margin: 0 0 10px;
+				padding-left: 14px;
+				font-family: var(--mono);
+				font-size: .68rem;
+				font-weight: 600;
+				letter-spacing: .08em;
+				text-transform: uppercase;
+				color: var(--soft-ink);
+				opacity: .75;
+			}
+
+			.post-toc-nav {
+				min-height: 0;
+				overflow-y: auto;
+				overflow-x: hidden;
+				padding-right: 4px;
+			}
+
+			.post-toc-list {
+				list-style: none;
+				margin: 0;
+				padding: 0;
+				border-left: 1px solid var(--line);
+			}
+
+			.post-toc-item {
+				margin: 0;
+				padding: 0;
+			}
+
+			.post-toc-link {
+				display: block;
+				margin-left: -1px;
+				padding: 4px 10px 4px 13px;
+				border-left: 2px solid transparent;
+				color: var(--soft-ink);
+				font-family: var(--mono);
+				font-size: .76rem;
+				line-height: 1.45;
+				text-decoration: none;
+				overflow-wrap: anywhere;
+				transition: color .15s ease, border-left-color .15s ease, background-color .15s ease;
+			}
+
+			.post-toc-item[data-depth="1"] .post-toc-link {
+				padding-left: 24px;
+				font-size: .73rem;
+				opacity: .86;
+			}
+
+			.post-toc-item[data-depth="2"] .post-toc-link {
+				padding-left: 35px;
+				font-size: .7rem;
+				opacity: .75;
+			}
+
+			.post-toc-link:hover {
+				color: var(--ink);
+				opacity: 1;
+				border-left-color: var(--line-strong);
+			}
+
+			.post-toc-link.is-active {
+				color: var(--green-ink);
+				opacity: 1;
+				border-left-color: var(--green-ink);
+				background: color-mix(in srgb, var(--green-wash) 45%, transparent);
 			}
 
 			.post-sheet-body :global(p) {
@@ -291,6 +417,15 @@ const openGraphImageUrl = getImagePath({ url, site });
 
 			.post-sheet-body :global(p:last-child) {
 				margin-bottom: 0;
+			}
+
+			.post-sheet-body :global(h1),
+			.post-sheet-body :global(h2),
+			.post-sheet-body :global(h3),
+			.post-sheet-body :global(h4),
+			.post-sheet-body :global(h5),
+			.post-sheet-body :global(h6) {
+				scroll-margin-top: 68px;
 			}
 
 			.post-sheet-body :global(h1),
@@ -660,6 +795,7 @@ const openGraphImageUrl = getImagePath({ url, site });
 
 			/* Scrollbars: thin pill thumb, no track, brightens to green on hover */
 			.post-sheet,
+			.post-toc-nav,
 			.post-sheet-body :global(.table-wrapper),
 			.post-sheet-body :global(.code-block > pre),
 			.post-sheet-body :global(.typst-display-wrapper) {
@@ -669,6 +805,7 @@ const openGraphImageUrl = getImagePath({ url, site });
 
 			@supports not selector(::-webkit-scrollbar) {
 				.post-sheet,
+				.post-toc-nav,
 				.post-sheet-body :global(.table-wrapper),
 				.post-sheet-body :global(.code-block > pre),
 				.post-sheet-body :global(.typst-display-wrapper) {
@@ -681,6 +818,10 @@ const openGraphImageUrl = getImagePath({ url, site });
 				width: 10px;
 			}
 
+			.post-toc-nav::-webkit-scrollbar {
+				width: 6px;
+			}
+
 			.post-sheet-body :global(.table-wrapper)::-webkit-scrollbar,
 			.post-sheet-body :global(.code-block > pre)::-webkit-scrollbar,
 			.post-sheet-body :global(.typst-display-wrapper)::-webkit-scrollbar {
@@ -688,6 +829,7 @@ const openGraphImageUrl = getImagePath({ url, site });
 			}
 
 			.post-sheet::-webkit-scrollbar-track,
+			.post-toc-nav::-webkit-scrollbar-track,
 			.post-sheet-body :global(.table-wrapper)::-webkit-scrollbar-track,
 			.post-sheet-body :global(.code-block > pre)::-webkit-scrollbar-track,
 			.post-sheet-body :global(.typst-display-wrapper)::-webkit-scrollbar-track {
@@ -695,6 +837,7 @@ const openGraphImageUrl = getImagePath({ url, site });
 			}
 
 			.post-sheet::-webkit-scrollbar-button,
+			.post-toc-nav::-webkit-scrollbar-button,
 			.post-sheet-body :global(.table-wrapper)::-webkit-scrollbar-button,
 			.post-sheet-body :global(.code-block > pre)::-webkit-scrollbar-button,
 			.post-sheet-body :global(.typst-display-wrapper)::-webkit-scrollbar-button {
@@ -706,6 +849,7 @@ const openGraphImageUrl = getImagePath({ url, site });
 			}
 
 			.post-sheet::-webkit-scrollbar-thumb,
+			.post-toc-nav::-webkit-scrollbar-thumb,
 			.post-sheet-body :global(.table-wrapper)::-webkit-scrollbar-thumb,
 			.post-sheet-body :global(.code-block > pre)::-webkit-scrollbar-thumb,
 			.post-sheet-body :global(.typst-display-wrapper)::-webkit-scrollbar-thumb {
@@ -715,6 +859,7 @@ const openGraphImageUrl = getImagePath({ url, site });
 				border-radius: 999px;
 			}
 
+			.post-toc-nav::-webkit-scrollbar-thumb,
 			.post-sheet-body :global(.table-wrapper)::-webkit-scrollbar-thumb,
 			.post-sheet-body :global(.code-block > pre)::-webkit-scrollbar-thumb,
 			.post-sheet-body :global(.typst-display-wrapper)::-webkit-scrollbar-thumb {
@@ -723,6 +868,8 @@ const openGraphImageUrl = getImagePath({ url, site });
 
 			.post-sheet::-webkit-scrollbar-thumb:hover,
 			.post-sheet::-webkit-scrollbar-thumb:active,
+			.post-toc-nav::-webkit-scrollbar-thumb:hover,
+			.post-toc-nav::-webkit-scrollbar-thumb:active,
 			.post-sheet-body :global(.table-wrapper)::-webkit-scrollbar-thumb:hover,
 			.post-sheet-body :global(.code-block > pre)::-webkit-scrollbar-thumb:hover,
 			.post-sheet-body :global(.table-wrapper)::-webkit-scrollbar-thumb:active,
@@ -733,6 +880,12 @@ const openGraphImageUrl = getImagePath({ url, site });
 				background-clip: padding-box;
 			}
 
+			@media (max-width: 1024px) {
+				.post-toc {
+					display: none;
+				}
+			}
+
 			@media (max-width: 640px) {
 				.site-bar {
 					padding-inline: 16px;
@@ -740,6 +893,7 @@ const openGraphImageUrl = getImagePath({ url, site });
 
 				.post-page {
 					padding: 12px 12px 0;
+					padding-top: max(0px, calc(var(--sheet-start) - var(--sheet-scroll, 0px)));
 				}
 
 				.post-sheet-header,
@@ -800,6 +954,40 @@ const openGraphImageUrl = getImagePath({ url, site });
 		</style>
 
 		<script>
+			// Feeds the sheet's scroll offset to CSS, which closes the gap above the sheet
+			const initSheetLift = () => {
+				const win = window as Window & {
+					__sheetLiftObserver?: ResizeObserver;
+				};
+				win.__sheetLiftObserver?.disconnect();
+
+				const page = document.querySelector<HTMLElement>(".post-page");
+				const sheet = document.querySelector<HTMLElement>(".post-sheet");
+				if (!page || !sheet) return;
+
+				// The gap closes only if the post can scroll that far once the sheet fills the page
+				const checkLength = () => {
+					const ratio = parseFloat(getComputedStyle(page).getPropertyValue("--sheet-start-ratio")) || 0;
+					const fullHeight = page.clientHeight;
+					page.classList.toggle("is-short", sheet.scrollHeight - fullHeight < fullHeight * ratio);
+				};
+				// Re-check when the window resizes or the post's height changes (folds, images, math)
+				win.__sheetLiftObserver = new ResizeObserver(checkLength);
+				win.__sheetLiftObserver.observe(page);
+				sheet.querySelectorAll<HTMLElement>(":scope > *").forEach((child) => win.__sheetLiftObserver?.observe(child));
+				checkLength();
+
+				let frame = 0;
+				const update = () => {
+					frame = 0;
+					page.style.setProperty("--sheet-scroll", `${sheet.scrollTop}px`);
+				};
+				sheet.addEventListener("scroll", () => {
+					if (!frame) frame = requestAnimationFrame(update);
+				}, { passive: true });
+				update();
+			};
+
 			const initMiniBar = () => {
 				const win = window as Window & {
 					__miniBarObserver?: IntersectionObserver;
@@ -826,22 +1014,136 @@ const openGraphImageUrl = getImagePath({ url, site });
 				win.__miniBarObserver.observe(header);
 			};
 
-			const revealHashTarget = () => {
-				const hash = window.location.hash;
-				if (!hash) return;
-				const id = decodeURIComponent(hash.slice(1));
-				const target = document.getElementById(id);
-				if (!target) return;
-
+			const unfoldToElement = (target: HTMLElement) => {
+				let unfolded = false;
 				let parent = target.parentElement;
 				while (parent && !parent.classList.contains("post-sheet-body")) {
 					if (parent.classList.contains("fold-section") && parent.classList.contains("is-folded")) {
 						parent.classList.remove("is-folded");
 						const toggle = parent.querySelector<HTMLButtonElement>(":scope > .fold-header > .fold-toggle");
 						toggle?.setAttribute("aria-expanded", "true");
+						unfolded = true;
 					}
 					parent = parent.parentElement;
 				}
+				return unfolded;
+			};
+
+			const scrollToHeading = (id: string, smooth: boolean) => {
+				const target = document.getElementById(id);
+				const sheet = document.querySelector<HTMLElement>(".post-sheet");
+				if (!target || !sheet) return;
+
+				if (unfoldToElement(target)) {
+					updateMathBlocks();
+				}
+
+				const sheetRect = sheet.getBoundingClientRect();
+				const targetRect = target.getBoundingClientRect();
+				const offset = 68;
+				const top = Math.max(0, sheet.scrollTop + (targetRect.top - sheetRect.top) - offset);
+				sheet.scrollTo({ top, behavior: smooth ? "smooth" : "auto" });
+			};
+
+			const revealHashTarget = () => {
+				const hash = window.location.hash;
+				if (!hash) return;
+				const id = decodeURIComponent(hash.slice(1));
+				const target = document.getElementById(id);
+				if (!target) return;
+				if (unfoldToElement(target)) {
+					updateMathBlocks();
+				}
+			};
+
+			let updateTocActive = () => {};
+
+			const initToc = () => {
+				const win = window as Window & {
+					__tocCleanup?: () => void;
+				};
+				win.__tocCleanup?.();
+
+				const sheet = document.querySelector<HTMLElement>(".post-sheet");
+				const tocNav = document.querySelector<HTMLElement>(".post-toc-nav");
+				const links = Array.from(document.querySelectorAll<HTMLAnchorElement>(".post-toc-link"));
+				if (!sheet || links.length === 0) {
+					updateTocActive = () => {};
+					return;
+				}
+
+				const items = links
+					.map((link) => {
+						const slug = link.dataset.tocSlug ?? "";
+						const heading = slug ? document.getElementById(slug) : null;
+						return heading ? { slug, link, heading } : null;
+					})
+					.filter((item): item is { slug: string; link: HTMLAnchorElement; heading: HTMLElement } => item !== null);
+
+				if (items.length === 0) {
+					updateTocActive = () => {};
+					return;
+				}
+
+				let activeSlug = "";
+				let frame = 0;
+
+				const computeActive = () => {
+					frame = 0;
+					const visibleItems = items.filter((item) => item.heading.getClientRects().length > 0);
+					if (visibleItems.length === 0) return;
+
+					const sheetRect = sheet.getBoundingClientRect();
+					const triggerTop = sheetRect.top + 96;
+
+					let current = visibleItems[0];
+					for (const item of visibleItems) {
+						if (item.heading.getBoundingClientRect().top <= triggerTop) {
+							current = item;
+						} else {
+							break;
+						}
+					}
+
+					const nextSlug = current.slug;
+					if (nextSlug === activeSlug) return;
+					activeSlug = nextSlug;
+
+					for (const item of items) {
+						const isActive = item.slug === activeSlug;
+						item.link.classList.toggle("is-active", isActive);
+						if (isActive) {
+							item.link.setAttribute("aria-current", "location");
+						} else {
+							item.link.removeAttribute("aria-current");
+						}
+					}
+
+					if (tocNav && tocNav.scrollHeight > tocNav.clientHeight) {
+						const navRect = tocNav.getBoundingClientRect();
+						const linkRect = current.link.getBoundingClientRect();
+						const pad = 24;
+						if (linkRect.top < navRect.top + pad) {
+							tocNav.scrollTop += linkRect.top - (navRect.top + pad);
+						} else if (linkRect.bottom > navRect.bottom - pad) {
+							tocNav.scrollTop += linkRect.bottom - (navRect.bottom - pad);
+						}
+					}
+				};
+
+				const onScroll = () => {
+					if (frame) return;
+					frame = requestAnimationFrame(computeActive);
+				};
+
+				updateTocActive = computeActive;
+				sheet.addEventListener("scroll", onScroll, { passive: true });
+				computeActive();
+
+				win.__tocCleanup = () => {
+					sheet.removeEventListener("scroll", onScroll);
+					if (frame) cancelAnimationFrame(frame);
+				};
 			};
 
 			// Mark display math that had to be shrunk to fit the column as expandable
@@ -932,10 +1234,23 @@ const openGraphImageUrl = getImagePath({ url, site });
 				}, 1600));
 			};
 
-			// Global delegated click handler for code copy, math popups, fold toggles and badges
+			// Global delegated click handler for TOC links, code copy, math popups, fold toggles and badges
 			document.addEventListener("click", (event) => {
 				const target = event.target as HTMLElement | null;
 				if (!target) return;
+
+				const tocLink = target.closest<HTMLAnchorElement>(".post-toc-link");
+				if (tocLink) {
+					const slug = tocLink.dataset.tocSlug;
+					if (slug) {
+						event.preventDefault();
+						const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+						history.pushState(null, "", `#${encodeURIComponent(slug)}`);
+						scrollToHeading(slug, !reduceMotion);
+						updateTocActive();
+					}
+					return;
+				}
 
 				const copyBtn = target.closest<HTMLButtonElement>(".code-copy");
 				if (copyBtn) {
@@ -961,6 +1276,7 @@ const openGraphImageUrl = getImagePath({ url, site });
 					toggle.setAttribute("aria-expanded", isFolded ? "false" : "true");
 				}
 				if (!isFolded) updateMathBlocks();
+				updateTocActive();
 			});
 
 			window.addEventListener("hashchange", revealHashTarget);
@@ -968,6 +1284,8 @@ const openGraphImageUrl = getImagePath({ url, site });
 			const setupPostPage = () => {
 				revealHashTarget();
 				initMiniBar();
+				initSheetLift();
+				initToc();
 				updateMathBlocks();
 			};
 
