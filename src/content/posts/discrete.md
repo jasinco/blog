@@ -364,6 +364,59 @@ inset: 10pt,
 )
 ```
 
+# Proofs
+trivial proof: $(p->q) and q$  
+vacuous proof: $(p->q) and not p$
+## Direct Proof
+$p->q$ assume p is true and inference to make q must be true
+## Contrapositon
+$ not q -> not p$ assume $not q$ is true and inference to make $not p$ must be true
+## Contradiction
+$p and not p$ assume $not p$ is true, derive $p$ is  true with $not p -> F = T -> p $
+## Proof by cases
+$(a or b or c or d)->q equiv (a->q) and (b->q) and (c->q) and (d->q)$
+a b c d are cases, and enumerate all cases
+### Without Loss Of Generality
+show that x,y are integer, if both xy and x+y are even, then both x and y are even  
+if not both x and y are even then not both xy and x+y are even  
+if x is not even or y is not even then xy is not even or x+y is not even  
+
+let x = 2n+1, y =2k $ n, k in ZZ$  
+xy = (2n+1)(2k) = 2(2nk)+2k = 2(2nk+k)  
+x+y = (2n+1)+(2k) = 2(n+k) + 1
+
+WLOG, x,y can swap, so x = 2n ,y = 2k+1 is proved
+
+let x = 2n+1, y =2k+1 $ n, k in ZZ$  
+xy = (2n+1)(2k+1) =  2n2k +2n+2k+1 = 2(2nk+n+k) + 1  
+x+y = (2n+1)+(2k+1) = 2(n+k+1)   
+
+
+## Existence Proof/ Constructive Existence Proof
+an example for $exists x [P(x)]$
+
+there is a positive integer can be writtern as the sum of cubes of positive integers in two way
+$1729 = 10^3+9^3 = 12 ^3 + 1 ^3$
+## Nonconstructive Existence Proof
+without actually an example
+show that there exists irrational number x and y such that $x^y$ is rational  
+if $sqrt(2)^sqrt(2)$ is irrational then $(sqrt(2)^(sqrt(2)))^(sqrt(2))  = sqrt(2)^(sqrt(2) * sqrt(2)) = sqrt(2)^2 = 2$ proved  
+if $sqrt(2)^sqrt(2)$ is rational then proved
+
+## Backward Reasoning
+a game, the last person remove the rocks win, a person can remove $[1,3]$ rock(s), show that the first player can always wins
+
+a first, b second.  
+1. leave $[1,3]$, a
+1. leave $4$,b
+1. leave $[5,7]$,a
+1. leave $8$,b
+1. leave $[9,11]$,a
+1. leave $[12]$,b
+a take 3 when first round
+
+## Example
+
 ```typst size=0.9
 #table(
 columns: (auto ,auto, auto),
@@ -420,6 +473,7 @@ inset: 10pt,
   [11],$forall x [not R(x) -> P(x)]$,[UG 10],
 )
 ```
+
 
 # Tricks
 $$

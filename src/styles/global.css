@@ -53,6 +53,8 @@
 }
 
 :root {
+	/* The site bar's height; pages fill the rest of the viewport below it */
+	--bar-height: 30px;
 	--canvas: #111311;
 	--surface: #1c201d;
 	--ink: #f0f0e8;
@@ -101,9 +103,10 @@ a {
 .site-bar {
 	display: flex;
 	align-items: center;
-	justify-content: space-between;
-	height: 56px;
-	padding: 0 clamp(20px, 4vw, 56px);
+	justify-content: left;
+	gap: 15px;
+	height: var(--bar-height);
+	padding: 0 clamp(20px, 4vw, 90px);
 	border-bottom: 1px solid var(--line);
 }
 
@@ -121,8 +124,24 @@ a {
 	font-size: .78rem;
 }
 
+.toolbar_tag {
+	font-family: var(--mono);
+	font-size: 10pt;
+	font-weight: 400;
+	letter-spacing: .02em;
+	text-decoration: none;
+}
+
+.toolbar_tag::before {
+	content: "[";
+}
+
+.toolbar_tag::after {
+	content: "]";
+}
+
 .stage {
-	height: calc(100dvh - 56px);
+	height: calc(100dvh - var(--bar-height));
 	display: grid;
 	place-items: center;
 	overflow: hidden;
@@ -439,8 +458,11 @@ button:focus-visible,
 }
 
 @media (max-width: 600px) {
+	:root {
+		--bar-height: 52px;
+	}
+
 	.site-bar {
-		height: 52px;
 		padding-inline: 20px;
 	}
 
@@ -464,7 +486,6 @@ button:focus-visible,
 	}
 
 	.stage {
-		height: calc(100dvh - 52px);
 		padding: 8px 10px;
 	}
 

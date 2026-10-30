@@ -4,6 +4,7 @@ import { getCollection, render } from "astro:content";
 import "../../styles/global.css";
 // Deep import: the package root pulls in the native renderer, which the Cloudflare build can't bundle
 import { getImagePath } from "astro-takumi/dist/util.js";
+import Ascii from "ascii.rest/astro";
 
 export async function getStaticPaths() {
 	const posts = (await getCollection("posts"))
@@ -52,7 +53,6 @@ const postTransition = {
 	forwards: postTransitionAnim,
 	backwards: postTransitionAnim,
 };
-
 const { url, site } = Astro;
 const openGraphImageUrl = getImagePath({ url, site });
 ---
@@ -84,9 +84,11 @@ const openGraphImageUrl = getImagePath({ url, site });
 	</head>
 	<body>
 		<header class="site-bar" transition:persist>
-			<a href="/" class="brand" aria-label="一人の言葉 home">一人の言葉</a>
-			<a class="post-back" href="/">Back to notes</a>
+			<a class="toolbar_tag" href="/">Home</a>
+			<a class="toolbar_tag" href="/">Photos</a>
+			<a class="toolbar_tag" href="https://github.com/jasinco">github</a>
 		</header>
+		<Ascii piece="aurora-fjord" class="animation-bg"/>
 
 		<main class="stage post-page" transition:animate={postTransition}>
 			<article class="post-sheet">
@@ -120,9 +122,36 @@ const openGraphImageUrl = getImagePath({ url, site });
 			.post-page {
 				align-items: stretch;
 				justify-items: stretch;
-				height: calc(100dvh - 56px);
-				padding: clamp(16px, 3.5vh, 32px);
+				height: calc(100dvh - var(--bar-height));
+				/* padding: clamp(16px, 3.5vh, 32px); */
+				padding-left:20vw;
+				padding-right:20vw;
+				/* The sheet runs to the bottom of the viewport */
+				padding-bottom: 0;
+				/* margin-top:50px; */
 				box-sizing: border-box;
+			}
+
+			/* Dim the misty-forest backdrop so it sits further behind the post */
+			:global(ascii-art.animation-bg) {
+				overflow: hidden;
+				filter: brightness(.6);
+			}
+
+			/* The piece keeps its own aspect ratio; stretch it over the viewport and crop like a cover image */
+			:global(ascii-art.animation-bg > canvas),
+			:global(ascii-art.animation-bg > div) {
+				height: 100%;
+				object-fit: cover;
+			}
+
+			/* The backdrop covers the whole viewport here, so lift the bar above it */
+			.site-bar {
+				position: relative;
+				z-index: 1;
+				background: color-mix(in srgb, var(--surface) 40%, transparent);
+				/* -webkit-backdrop-filter: blur(2px); */
+				/* backdrop-filter: blur(2px); */
 			}
 
 			.post-back {
@@ -710,8 +739,7 @@ const openGraphImageUrl = getImagePath({ url, site });
 				}
 
 				.post-page {
-					height: calc(100dvh - 52px);
-					padding: 12px;
+					padding: 12px 12px 0;
 				}
 
 				.post-sheet-header,
