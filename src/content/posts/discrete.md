@@ -396,12 +396,12 @@ a game, the last person remove the rocks win, a person can remove $[1,3]$ rock(s
 
 a first, b second.  
 1. leave $[1,3]$, a
-1. leave $4$,b
-1. leave $[5,7]$,a
-1. leave $8$,b
-1. leave $[9,11]$,a
-1. leave $[12]$,b
-a take 3 when first round
+2. leave $4$,b
+3. leave $[5,7]$,a
+4. leave $8$,b
+5. leave $[9,11]$,a
+6. leave $[12]$,b
+7. a take 3 when first round
 
 ## Example
 ```typst
